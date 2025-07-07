@@ -1,0 +1,8 @@
+../Src/boot.c:56:6:Jump_To_Main_Application	16	static,ignoring_inline_asm
+../Src/boot.c:92:6:check_for_hota	24	static
+../Src/boot.c:131:6:copy_hota	40	static
+../Src/boot.c:202:13:copy_from_flash_to_buffer	32	static
+../Src/boot.c:227:13:prvWriteToFlash	64	static
+../Src/boot.c:299:13:prvEraseSectors	56	static
+../Src/boot.c:356:13:prvEraseApplication	8	static
+../Src/boot.c:361:13:prvEraseOTA	8	static
