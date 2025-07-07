@@ -1,0 +1,9 @@
+[submodule "project/Libraries/littlefs"]
+	path = project/Libraries/littlefs
+	url = https://github.com/littlefs-project/littlefs.git
+[submodule "project/Libraries/corePKCS11"]
+	path = project/Libraries/corePKCS11
+	url = https://github.com/FreeRTOS/corePKCS11.git
+[submodule "project/Libraries/tinycbor"]
+	path = project/Libraries/tinycbor
+	url = https://github.com/intel/tinycbor.git
