@@ -100,8 +100,8 @@ Follow this [link](https://aws.amazon.com/blogs/iot/just-in-time-registration-of
 
 ## Run and Test the Examples
 
-After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#run-and-test-the-examples) section in the main README for details.
+After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
 
 ---
 
-[⬅️ Back to Main README - Run and Test the Examples](readme.md#run-and-test-the-examples)
+[⬅️ Back to Main README - Run and Test the Examples](readme.md#7-run-and-test-the-examples)

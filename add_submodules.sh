@@ -6,3 +6,5 @@ git submodule add https://github.com/intel/tinycbor.git project/Libraries/tinycb
 
 git submodule update --init --recursive
 git submodule status
+git commit -m "Added submodules: littlefs, corePKCS11, tinycbor"
+git push origin main

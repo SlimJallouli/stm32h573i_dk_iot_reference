@@ -106,7 +106,7 @@ The PKCS11 API is used to handle keys and certificates, whether they are stored 
 
 >In ST67_NCP configuration, certificates and keys are transferred from STM32's internal Flash to ST67’s internal file system, and TLS/MQTT connection is managed by ST67. Otherwise, TLS/MQTT runs on the host processor.
 
-## 4 Flash Memory Layout
+## 4. Flash Memory Layout
 
 The STM32H5 features a dual-bank flash architecture. In this project, each bank is assigned a specific role to support firmware updates, runtime storage, and persistent configuration:
 
@@ -155,10 +155,12 @@ This structure ensures robust firmware update capability while maintaining secur
 
 ## 5. Get started with the project
 
-### Cloning the Repository
+<details>
+  <summary>Step 1. Cloning the Repository</summary>
+
 To clone using HTTPS:
 ```
-git clone https://github.com/SlimJallouli/stm32h573i_dk_w6x_iot_reference.git --recurse-submodules
+git clone https://github.com/SlimJallouli/stm32h573i_dk_iot_reference.git --recurse-submodules
 ```
 
 If you have downloaded the repo without using the `--recurse-submodules` argument, you should run:
@@ -166,16 +168,41 @@ If you have downloaded the repo without using the `--recurse-submodules` argumen
 ```
 git submodule update --init --recursive
 ```
+</details>
 
-### Update the [X-NUCLEO-67W61M1](https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html) module
+<details>
+  <summary>Step 2. Update the X-NUCLEO-67W61M1 module</summary>
 
 If you are using the [X-NUCLEO-67W61M1](https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html) module, you need to make sure to update the module firmware to revision 1.0.0. Follow this [link](https://github.com/STMicroelectronics/x-cube-st67w61/tree/main/Projects/ST67W6X_Utilities/Binaries) for instructions
+</details>
 
-### Build the project
-* Import the project with [STM32CubeIDE](http://www.st.com/stm32cubeide)
-* Select the configuration using the drop-down menu. 
+<details>
+  <summary>Step 3. Import the projects to STM32CubeIDE</summary>
+
+After you clone the repository, make sure you have cloned it with submodules (using `--recurse-submodules` or by running `git submodule update --init --recursive`).
+
+- Open STM32CubeIDE.
+- Click **Import Project**.
+
+![STM32CubeIDE Info Center](assets/STM32CubeIDE_InfoCenter.png)
+
+- Click 'Directory' button
+- Select the `stm32h573i_dk_iot_reference` folder.  
+
+**It is important to select the `stm32h573i_dk_iot_reference` folder, as you need to import both the Bootloader and the reference project.**
+
+- Click 'Finish'
+
+
+![STM32CubeIDE Import Project](assets/STM32CubeIDE_ImportProject.png)
+</details>
+
+<details>
+  <summary>Step 4. Build the project</summary>
+
+* Click on the `stm32h573i_dk_iot_reference` project
+* Select the configuration using the drop-down menu (use "dropdown arrow" clse to the hummer icon). 
 * Build the project
-* Flash the board
 
 |       Build Config          | Connects to AWS IoT | Connects to Mosquitto  |Connects to emqx        |OTA       |
 |:---------                   |:----------          |:-------                |:-------                |:-------  | 
@@ -199,60 +226,98 @@ To view the available build configurations in STM32CubeIDE:
 
 Click the small triangle (disclosure arrow) just to the right of the hammer icon. This will reveal the list of build configurations available for your board. Project build will automatically start after you select the project configuration
 
-![alt text](assets/build_configurations.png)
+![build_configurations](assets/build_configurations.png)
+</details>
 
-## Provision your board
+<details>
+  <summary>Step 5. Flash and Debug</summary>
+
+* The project is provided with a set of debug configurations for each project configuration.  
+  Each debug configuration is set up to:
+  - Build the bootloader and the selected project configuration
+  - Flash both the bootloader and the application
+  - Start execution from the bootloader
+
+* To configure debugging, click on the small dropdown arrow (disclosure arrow) to the right of the **Debug** button in STM32CubeIDE, then select **Debug Configurations ...**
+
+![STM32CubeIDE Debub Gonfiguration](assets/STM32CubeIDE_DebubGonfiguration.png)
+
+
+* In the Debug Configurations window, expand the **STM32 C/C++ Application** section, select your project configuration, and then click the **Debug** button to start debugging.
+
+![STM32CubeIDE Debug Select](assets/STM32CubeIDE_DebugSelect.png)
+
+* Click on "Switch"
+
+![STM32CubeIDE Debug Switch](assets/STM32CubeIDE_DebugSwitch.png)
+
+* Click run Resume (F8)
+
+![STM32CubeIDE Debug](assets/STM32CibeIDE_Debug.png)
+
+  </details>
+
+## 6. Provision your board
 
 Choose your MQTT broker and provisioning method below. Each link provides step-by-step instructions for provisioning your board and running the example.
 
----
+<details>
+  <summary>Option 1: Connect to Mosquitto (test.mosquitto.org)</summary>
 
-### 1. Connect to Mosquitto (test.mosquitto.org)
 - **Supported Build Configurations:**  
   `Ethernet`, `MXCHIP`, `ST67_NCP`
 - **Provisioning Method:**  
-  Single Thing Provisioning  
+  Manual Single Thing Provisioning  
 - **Guide:**  
   - [Provision and Run with test.mosquitto.org](provision_mosquitto.md)
+</details>
 
----
+<details>
+  <summary>Option 2: Connect to EMQX (broker.emqx.io)</summary>
 
-### 2. Connect to EMQX (broker.emqx.io)
 - **Supported Build Configurations:**  
   `ST67_NCP`
 - **Provisioning Method:**  
-  Single Thing Provisioning  
+  Manual Single Thing Provisioning  
 - **Guide:**  
   - [Provision and Run with EMQX MQTT Broker](provision_emqx.md)
+</details>
 
----
+<details>
+  <summary>Option 3: Connect to AWS IoT Core (Single Thing Provisioning)</summary>
 
-### 3. Connect to AWS IoT Core
-
-#### a. Single Thing Provisioning
 - **Supported Build Configurations:**  
   `Ethernet`, `MXCHIP`, `ST67_NCP`
+- **Provisioning Method:**  
+  Manual/scripted Single Thing Provisioning   
 - **Guides:**  
   - [Provision and Run with AWS (CLI)](provision_aws_single_cli.md)
   - [Provision and Run with AWS (Script)](provision_aws_single_script.md)
+</details>
 
-#### b. Fleet Provisioning
+<details>
+  <summary>Option 4: Connect to AWS IoT Core (Fleet Provisioning)</summary>
+
 - **Supported Build Configurations:**  
   `Ethernet_FleetProvisioning`, `MXCHIP_FleetProvisioning`
+  - **Provisioning Method:**  
+  Automated Thing Provisioning 
 - **Guide:**  
   - [Provision and Run with AWS Fleet Provisioning](provision_aws_FleetProvisioning.md)
+</details>
 
-#### c. Secure Element (STSAFE) Provisioning
+<details>
+  <summary>Option 5: Connect to AWS IoT Core  (STSAFE Provisioning)</summary>
+
 - **Supported Build Configurations:**  
   `Ethernet_STSAFEA110`, `Ethernet_STSAFEA120`, `MXCHIP_STSAFEA110`, `MXCHIP_STSAFEA120`
 - **Provisioning Methods:**  
   Multi-Account Registration (MAR), Just-in-Time Provisioning (JITP), Just-in-Time Registration (JITR)
 - **Guide:**  
   - [Provision and Run with AWS using STSAFE](provision_aws_STSAFE.md)
+</details>
 
----
-
-## Run and Test the Examples
+## 7. Run and Test the Examples
 
 After provisioning your board, you can run and test the application features. Refer to the following example guides for details:
 
@@ -270,9 +335,12 @@ These guides explain how to interact with your board using MQTT clients, monitor
 
 ---
 
-## 6. Required CMSIS Packs
+## 8. Required CMSIS Packs
 
 If you plan to regenerate the project using STM32CubeMX, you must download and install the following CMSIS packs **before opening** the .ioc file. These packs provide essential middleware and AWS IoT functionality.
+
+> ⚠️ **VERY IMPORTANT:**  
+> Install these packs in STM32CubeIDE via the "Packs Manager" **before** regenerating or building the project.
 
 **Required Packs:**
 - [mbedTLS 3.1.1](https://www.keil.com/pack/ARM.mbedTLS.3.1.1.pack)  
@@ -283,13 +351,17 @@ If you plan to regenerate the project using STM32CubeMX, you must download and i
 - [backoffAlgorithm 4.1.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.backoffAlgorithm.4.1.1.pack)  
 - [coreJSON 4.1.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.coreJSON.4.1.1.pack)  
 - [coreMQTT 5.0.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.coreMQTT.5.0.1.pack)  
-- [coreMQTT_Agent 5.0.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.coreMQTT_Agent.5.0.1.pack)  
+- [coreMQTT_Agent 5.0.1](https://d1pm0k3vkcievw.cloudfront.net/AWS.coreMQTT_Agent.5.0.1.pack) 
+- [lwIP 2.3.0](https://www.keil.com/pack/lwIP.lwIP.2.3.0.pack) 
 
-> **Tip:** Install these packs in STM32CubeIDE via the "Packs Manager" before regenerating or building the project.
+Other CMSIS Packs downloaded automatically by STM32CubeMX
+- [X-CUBE-SAFEA1](https://www.st.com/en/embedded-software/x-cube-safea1.html)
+- [X-CUBE-ST67W61](https://www.st.com/en/embedded-software/x-cube-st67w61.html)
+- [X-CUBE-MEMS1](https://www.st.com/en/embedded-software/x-cube-mems1.html)
 
 ---
 
-## 7. Git Submodules
+## 9. Git Submodules
 
 This project uses several external libraries as git submodules. Make sure to initialize and update submodules after cloning:
 
@@ -298,7 +370,7 @@ This project uses several external libraries as git submodules. Make sure to ini
 - [tinycbor](https://github.com/intel/tinycbor)
 
 
-## 8. Generate the Project Using STM32CubeMX
+## 10. Generate the Project Using STM32CubeMX
 
 ---
 

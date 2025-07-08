@@ -1,0 +1,11 @@
+# Ignore build directories
+project/Ethernet/
+project/Ethernet_FleetProvisioning/
+project/Ethernet_STSAFEA110/
+project/Ethernet_STSAFEA120/
+project/MXCHIP/
+project/MXCHIP_FleeProvisioning/
+project/MXCHIP_STSAFEA110/
+project/MXCHIP_STSAFEA120/
+project/ST67_NCP/
+Bootloader/Debug/

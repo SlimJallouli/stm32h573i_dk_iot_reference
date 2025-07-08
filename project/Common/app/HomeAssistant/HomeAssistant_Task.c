@@ -246,7 +246,7 @@ void vHAConfigPublishTask(void *pvParameters)
     size_t xPayloadLength = 0;
     MQTTStatus_t xMQTTStatus;
     MQTTQoS_t xQoS = MQTTQoS0;
-    bool xRetain = pdFALSE;
+    bool xRetain = pdTRUE;
     char *pThingName = NULL;
     size_t uxThingNameLen = 0;
 
@@ -267,7 +267,7 @@ void vHAConfigPublishTask(void *pvParameters)
 
     if(xRetain)
     {
-      prvClearRetainedTopic(MQTTQoS0, true, "homeassistant/sensor/mydevice_temp/config");
+      prvClearRetainedTopic(xQoS, xRetain, "homeassistant/sensor/mydevice_temp/config");
     }
 
 #if (DEMO_LED == 1)
