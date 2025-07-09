@@ -571,11 +571,11 @@ W61_Status_t W61_MQTT_Unsubscribe(W61_Object_t *Obj, uint8_t *Topic)
   return ret;
 }
 
-W61_Status_t W61_MQTT_Publish(W61_Object_t *Obj, uint8_t *Topic, uint8_t *Message, uint32_t Message_len, uint32_t qos, uint32_t retain)
+W61_Status_t W61_MQTT_Publish(W61_Object_t *Obj, uint8_t *Topic, uint8_t *Message, uint32_t Message_len)
 {
   W61_Status_t ret = W61_STATUS_ERROR;
-//  uint32_t qos = 0;
-//  uint32_t retain = 0;
+  uint32_t qos = 0;
+  uint32_t retain = 0;
   W61_NULL_ASSERT(Obj);
   W61_NULL_ASSERT(Topic);
   W61_NULL_ASSERT(Message);

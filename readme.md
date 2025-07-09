@@ -1,5 +1,6 @@
 
 # STM32H573I-DK FreeRTOS IoT Reference
+
 ## 1. Introduction
 This project demonstrates how to integrate modular [FreeRTOS kernel and libraries](https://www.freertos.org/Documentation/03-Libraries/01-Library-overview/03-LTS-libraries/01-LTS-libraries), [LwIP](https://savannah.nongnu.org/projects/lwip/) and [MbedTLS](https://github.com/Mbed-TLS/mbedtls) to enable secure, connected IoT applications. It offers nine flexible configurations, making it adaptable for a variety of hardware setups and application needs. It is pre-configured to run on the [ STM32H573I-DK ](https://www.st.com/en/evaluation-tools/stm32h573i-dk.html) using Ethernet, [X-NUCLEO-67W61M1](https://www.st.com/en/evaluation-tools/x-nucleo-67w61m1.html) Wi-Fi  and MXCHIP EMW3080B Wi-Fi.
 
@@ -8,8 +9,6 @@ The project supports TLS authentication with or without the [STSAFE](https://www
 Secure MQTT connectivity is supported, with working examples provided for [AWS IoT Core](https://aws.amazon.com/), [test.mosquitto.org](https://test.mosquitto.org/) and [broker.emqx.io](https://www.emqx.com/en/mqtt/public-mqtt5-broker).
 
 - The application connects to an MQTT broker and showcases the following demonstration tasks:
-
-
 
 - The following features are **only available when connected to Mosquitto or EMQX**:
   * LED control (On, Off)
@@ -321,15 +320,15 @@ Choose your MQTT broker and provisioning method below. Each link provides step-b
 
 After provisioning your board, you can run and test the application features. Refer to the following example guides for details:
 
-- [LED Control Example](project/Common/app/led/readme.md)
-- [Button Status Example](project/Common/app/button/readme.md)
-- [Home Assistant Discovery Example](project/Common/app/HomeAssistant/home_assistant_discovery.md)
-- [Environmental Sensor Example](project/Common/app/sensors/env_sensor_readme.md)
-- [Motion Sensor Example](project/Common/app/sensors/motion_sensor_readme.md)
-- [AWS Fleet Provisioning](https://github.com/stm32-hotspot/stm32mcu_aws_fleetProvisioning)
-- [AWS Defender](redme_aws_defender.md)
-- [AWS Shadow](readme_aws_shadow.md)
-- [AWS OTA](readme_aws_ota.md)
+- [LED Control Example](project/Common/app/led/readme.md) *(Available for all connections)*
+- [Button Status Example](project/Common/app/button/readme.md) *(Available for all connections)*
+- [Home Assistant Discovery Example](project/Common/app/HomeAssistant/home_assistant_discovery.md) *(Available for all connections)*
+- [Environmental Sensor Example](project/Common/app/sensors/env_sensor_readme.md) *(Available for all connections)*
+- [Motion Sensor Example](project/Common/app/sensors/motion_sensor_readme.md) *(Available for all connections)*
+- [AWS Fleet Provisioning](https://github.com/stm32-hotspot/stm32mcu_aws_fleetProvisioning) *(Available only when connected to AWS IoT Core)*
+- [AWS Defender](redme_aws_defender.md) *(Available only when connected to AWS IoT Core)*
+- [AWS Shadow](readme_aws_shadow.md) *(Available only when connected to AWS IoT Core)*
+- [AWS OTA](readme_aws_ota.md) *(Available only when connected to AWS IoT Core)*
 
 These guides explain how to interact with your board using MQTT clients, monitor messages, and control or observe peripherals.
 
@@ -340,7 +339,7 @@ These guides explain how to interact with your board using MQTT clients, monitor
 If you plan to regenerate the project using STM32CubeMX, you must download and install the following CMSIS packs **before opening** the .ioc file. These packs provide essential middleware and AWS IoT functionality.
 
 > ⚠️ **VERY IMPORTANT:**  
-> Install these packs in STM32CubeIDE via the "Packs Manager" **before** regenerating or building the project.
+> Install these packs via the "STM32CubeMX Packs Manager" **before** opening the project with STM32CubeMX.
 
 **Required Packs:**
 - [mbedTLS 3.1.1](https://www.keil.com/pack/ARM.mbedTLS.3.1.1.pack)  

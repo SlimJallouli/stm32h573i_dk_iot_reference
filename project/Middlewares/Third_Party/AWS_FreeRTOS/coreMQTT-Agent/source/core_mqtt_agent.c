@@ -38,9 +38,6 @@
  */
 
 /* Standard includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>

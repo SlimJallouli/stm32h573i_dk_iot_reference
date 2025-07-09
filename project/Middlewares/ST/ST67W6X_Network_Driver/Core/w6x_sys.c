@@ -36,10 +36,9 @@
 
 #ifndef HAL_SYS_RESET
 /** HAL System software reset function */
-//extern void HAL_NVIC_SystemReset(void);
-extern void vDoSystemReset(void);
+extern void HAL_NVIC_SystemReset(void);
 /** HAL System software reset macro */
-#define HAL_SYS_RESET() do{ vDoSystemReset(); } while(0);
+#define HAL_SYS_RESET() do{ HAL_NVIC_SystemReset(); } while(0);
 #endif /* HAL_SYS_RESET */
 
 /** @} */

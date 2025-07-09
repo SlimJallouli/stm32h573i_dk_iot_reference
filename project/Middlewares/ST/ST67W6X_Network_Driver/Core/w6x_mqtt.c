@@ -301,13 +301,13 @@ W6X_Status_t W6X_MQTT_Unsubscribe(uint8_t *Topic)
   return TranslateErrorStatus(W61_MQTT_Unsubscribe(p_DrvObj, Topic));
 }
 
-W6X_Status_t W6X_MQTT_Publish(uint8_t *Topic, uint8_t *Message, uint32_t Message_len, uint32_t qos, uint32_t retain)
+W6X_Status_t W6X_MQTT_Publish(uint8_t *Topic, uint8_t *Message, uint32_t Message_len)
 {
   W6X_Status_t ret = W6X_STATUS_ERROR;
   NULL_ASSERT(p_DrvObj, W6X_MQTT_Uninit_str);
 
   /* Publish the message to the topic */
-  return TranslateErrorStatus(W61_MQTT_Publish(p_DrvObj, Topic, Message, Message_len, qos, retain));
+  return TranslateErrorStatus(W61_MQTT_Publish(p_DrvObj, Topic, Message, Message_len));
 }
 
 const char *W6X_MQTT_StateToStr(uint32_t state)

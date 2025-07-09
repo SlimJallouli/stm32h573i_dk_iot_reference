@@ -10,7 +10,8 @@ This example demonstrates how to control the onboard LED of the STM32 board via 
 - When a message is received (ON or OFF), the onboard LED is updated accordingly.
 - The board then publishes its current LED status to the `< ThingName >/led/reported` topic in JSON format.
 
-- The `ThingName` depends on your project configuration:
+- The `ThingName` depends on your project configuration
+- Examples:
     * Without STSAFE : `stm32h573-002C005B3332511738363236`
     * With STSAFEA-110: `eval3-0102203B825BD42BC20554`
     * With STSAFEA-120: `eval5-0209203D823AD52A920A39`
@@ -24,26 +25,22 @@ This example demonstrates how to control the onboard LED of the STM32 board via 
 
 #### Example of report message to be sent to the `< ThingName >/led/reported` topic
 
-- Examples:
-    * `stm32h573-002C005B3332511738363236/led/reported`
-    * `eval3-0102203B825BD42BC20554/led/reported`
-    * `eval5-0209203D823AD52A920A39/led/reported`
-    * `ST1-TPM-TCA01-ABC60101DD7B33/led/reported`
+    stm32h573-002C005B3332511738363236/led/reported
+    eval3-0102203B825BD42BC20554/led/reported
+    eval5-0209203D823AD52A920A39/led/reported
+    ST1-TPM-TCA01-ABC60101DD7B33/led/reported
+
 
 #### Example of control message to be sent to the `< ThingName >/led/desired` topic
 
-- Examples:
-    * `stm32h573-002C005B3332511738363236/led/desired`
-    * `eval3-0102203B825BD42BC20554/led/desired`
-    * `eval5-0209203D823AD52A920A39/led/desired`
-    * `ST1-TPM-TCA01-ABC60101DD7B33/led/desired`
+    stm32h573-002C005B3332511738363236/led/desired
+    eval3-0102203B825BD42BC20554/led/desired
+    eval5-0209203D823AD52A920A39/led/desired
+    ST1-TPM-TCA01-ABC60101DD7B33/led/desired
 
 ---
 
 ## Controlling the Onboard LED
-
-- **Subscribe** to:  
-  `< ThingName >/led/reported`. (example `stm32h573-002C005B3332511738363236/led/reported`)
 
 - **Publish** to:  
   `< ThingName >/led/desired`. (example `stm32h573-002C005B3332511738363236/led/desired`)  
@@ -71,7 +68,10 @@ Turn LED ON:
 
 ## LED Status Reporting
 
-After processing your command, , the onboard LED is updated accordingly, then the board will publish its current LED status to the `led/reported` topic in this format:
+- **Subscribe** to:  
+  `< ThingName >/led/reported`. (example `stm32h573-002C005B3332511738363236/led/reported`)
+
+After processing your command, , the onboard LED is updated accordingly, then the board will publish its current LED status to the `< ThingName >led/reported` topic in this format:
 
 ```json
 {
@@ -106,8 +106,7 @@ You can use any MQTT client to monitor and control the LED. Below are two recomm
 
 4. You will see messages published by your board.
 
-![alt text](../../../assets/mqtt_cool_led_control.png)
-
+![alt text](../../../../assets/mqtt_cool_led_control.png)
 
 ---
 </details>
@@ -117,7 +116,7 @@ You can use any MQTT client to monitor and control the LED. Below are two recomm
 
 1. Connect to [mqttx.app web-client](https://mqttx.app/web-client) and connect to `broker.emqx.io` on port `1883`.
 
-![alt text](../../../assets/emqx_mqtt_connect.png)
+![alt text](../../../../assets/emqx_mqtt_connect.png)
 
 2. Subscribe to the topic: `< ThingName >/led/reported` (example `stm32h573-002C005B3332511738363236/led/reported`)
 
@@ -125,10 +124,9 @@ You can use any MQTT client to monitor and control the LED. Below are two recomm
 
 4. You will see messages published by your board.
 
-
 ---
 
-![alt text](../../../assets/emqx_led_control.png)
+![alt text](../../../../assets/emqx_led_control.png)
 
 </details>
 

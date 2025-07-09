@@ -40,8 +40,6 @@ This example demonstrates how to publish environmental sensor data (such as temp
 
 ## Monitoring MQTT Messages
 
-You can use any MQTT client to monitor the environmental sensor data. Below are two recommended web clients:
-
 <details>
   <summary>Option 1: mqtt.cool for test.mosquitto.org</summary>
 
@@ -70,7 +68,23 @@ You can use any MQTT client to monitor the environmental sensor data. Below are 
    (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/env`)
 4. You will see messages published by your board.
 
-![alt text](../../../assets/emqx_mqtt_env_publish.png)
+![alt text](../../../../assets/emqx_mqtt_env_publish.png)
+
+---
+
+<details>
+  <summary>Option 3: AWS IoT Core</summary>
+
+1. Connect to [broker.emqx.io](https://mqttx.app/web-client) on port `8084`.
+
+![alt text](../../../../assets/emqx_mqtt_connect.png)
+
+3. Subscribe to the topic:  
+   `stm32h573-xxxxxxxxxxxxxxxx/sensor/env`  
+   (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/env`)
+4. You will see messages published by your board.
+
+![alt text](../../../../assets/emqx_mqtt_env_publish.png)
 
 ---
 

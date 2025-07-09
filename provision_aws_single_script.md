@@ -1,9 +1,11 @@
-# Provision single device with AWS
+# Provision single device with AWS using Python Script
 
 [Single Thing Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/single-thing-provisioning.html), is a method used to provision individual IoT devices in AWS IoT Core. This method is ideal for scenarios where you need to provision devices one at a time.
 
 In this method you have two options: automated using a Python script or manual.  
 **This document describes the automated method using the `provision.py` script.**
+
+This provisioning method is supported by the following project configurations:
 
 |       Build Config          | Provisioning method       |
 |:---------                   |:----------                |
@@ -19,10 +21,7 @@ If you’re using the Ethernet configuration, connect the Ethernet cable to the 
 
 Then, in all cases, connect the board to your PC via the ST-Link USB port to power it and enable programming/debugging.
 
-## 2. Flash and run the project
-
-
-## 3. Provision Automatically with provision.py
+## 2. Provision Automatically with provision.py
 
 Before you begin, complete the following prerequisites:
 
@@ -104,7 +103,7 @@ After answering these prompts, the script will continue automatically to:
 
 For more details and advanced options, see the [official documentation](https://github.com/FreeRTOS/iot-reference-stm32u5/blob/main/Getting_Started_Guide.md#option-8a-provision-automatically-with-provisionpy).
 
-## Delete old certs from ST67 internal file system
+## 3. Delete old certs from ST67 internal file system
 
 If you are using the ST67_NCP configuration, it’s important to ensure that all previously stored certificates especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** are removed from the module’s internal file system before importing new ones. This step is necessary to allow the firmware to load the updated certificates and private key into the ST67 module, which are then used for establishing the TLS/MQTT connection.
 
@@ -141,7 +140,7 @@ Once connected, you should see confirmation messages in the terminal indicating 
 
 ![alt text](assets/mqtt_connection.png)
 
-## Run and Test the Examples
+## 4. Run and Test the Examples
 
 After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
 

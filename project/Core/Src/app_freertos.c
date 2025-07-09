@@ -346,7 +346,7 @@ void StartDefaultTask(void *argument)
 #endif
 
 #if defined(ST67W6X_NCP)
-  xTaskCreate(W6X_WiFi_Task, "w6x_wifi", TASK_STACK_SIZE_W6X, NULL, TASK_PRIO_W6X, NULL);
+  xTaskCreate(W6X_WiFi_Task, "W6xNet", TASK_STACK_SIZE_W6X, NULL, TASK_PRIO_W6X, NULL);
 #endif
 
 #if defined(ETHERNET)
@@ -394,6 +394,18 @@ void StartDefaultTask(void *argument)
   xTaskCreate(vMotionSensorsPublish, "MotionS", TASK_STACK_SIZE_MOTION, NULL, TASK_PRIO_MOTION, NULL);
 #endif
 
+#if DEMO_HOME_ASSISTANT
+      xTaskCreate(vHAConfigPublishTask, "HS", TASK_STACK_SIZE_HS, NULL, TASK_PRIO_HS, NULL);
+#endif
+
+#if DEMO_LED
+      xTaskCreate(vLEDTask, "LEDTask", TASK_STACK_SIZE_LED, NULL, TASK_PRIO_LED, NULL);
+#endif
+
+#if DEMO_BUTTON
+      xTaskCreate(vButtonTask, "ButtonTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
+#endif
+
   if ((uxMqttEndpointLen>0) && (uxMqttEndpointLen < 0xffffffff))
   {
     /* If we are connecting to AWS */
@@ -409,19 +421,6 @@ void StartDefaultTask(void *argument)
 
 #if DEMO_DEFENDER && !defined(ST67W6X_NCP)
       xTaskCreate(vDefenderAgentTask, "AWSDefender", TASK_STACK_SIZE_DEFENDER, NULL, TASK_PRIO_DEFENDER, NULL);
-#endif
-    }
-    else
-    {
-#if DEMO_HOME_ASSISTANT
-      xTaskCreate(vHAConfigPublishTask, "HS", TASK_STACK_SIZE_HS, NULL, TASK_PRIO_HS, NULL);
-#endif
-#if DEMO_LED
-      xTaskCreate(vLEDTask, "LEDTask", TASK_STACK_SIZE_LED, NULL, TASK_PRIO_LED, NULL);
-#endif
-
-#if DEMO_BUTTON
-      xTaskCreate(vButtonTask, "ButtonTask", TASK_STACK_SIZE_BUTTON, NULL, TASK_PRIO_BUTTON, NULL);
 #endif
     }
   }

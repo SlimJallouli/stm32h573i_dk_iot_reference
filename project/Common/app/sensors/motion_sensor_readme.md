@@ -63,7 +63,7 @@ You can use any MQTT client to monitor the motion sensor data. Below are two rec
    (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/motion`)
 4. You will see messages published by your board.
 
-![alt text](../../../assets/mqtt_cool_sensor_motion.png)
+![alt text](../../../../assets/mqtt_cool_sensor_motion.png)
 
 </details>
 
@@ -74,14 +74,14 @@ You can use any MQTT client to monitor the motion sensor data. Below are two rec
 
 1. Connect to [broker.emqx.io](https://mqttx.app/web-client) on port `8084`.
 
-![alt text](../../../assets/emqx_mqtt_connect.png)
+![alt text](../../../../assets/emqx_mqtt_connect.png)
 
 3. Subscribe to the topic:  
    `stm32h573-xxxxxxxxxxxxxxxx/sensor/motion`  
    (replace `xxxxxxxxxxxxxxxx` with your board's unique ID, e.g. `stm32h573-002C005B3332511738363236/sensor/motion`)
 4. You will see messages published by your board.
 
-![alt text](../../../assets/emqx_mqtt_motion_publish.png)
+![alt text](../../../../assets/emqx_mqtt_motion_publish.png)
 
 ---
 

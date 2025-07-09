@@ -1014,9 +1014,7 @@ MQTTStatus_t MQTT_Publish( MQTTContext_t * pContext, const MQTTPublishInfo_t * p
 
   xStatus = W6X_MQTT_Publish((uint8_t *)pPublishInfo->pTopicName,
                              (uint8_t* )pPublishInfo->pPayload,
-                                        pPublishInfo->payloadLength,
-                                        pPublishInfo->qos,
-                                        pPublishInfo->retain);
+                                        pPublishInfo->payloadLength);
 
   if (xStatus != W6X_STATUS_OK)
   {

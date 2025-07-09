@@ -2155,8 +2155,8 @@ W61_Status_t W61_MQTT_Unsubscribe(W61_Object_t *Obj, uint8_t *Topic);
   * @param  Message_len: length of the message
   * @return Operation Status.
   */
-//W61_Status_t W61_MQTT_Publish(W61_Object_t *Obj, uint8_t *Topic, uint8_t *Message, uint32_t Message_len);
-W61_Status_t W61_MQTT_Publish(W61_Object_t *Obj, uint8_t *Topic, uint8_t *Message, uint32_t Message_len, uint32_t qos, uint32_t retain);
+W61_Status_t W61_MQTT_Publish(W61_Object_t *Obj, uint8_t *Topic, uint8_t *Message, uint32_t Message_len);
+
 /** @} */
 
 /* ===================================================================== */

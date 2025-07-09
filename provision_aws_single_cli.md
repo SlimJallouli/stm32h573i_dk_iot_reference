@@ -1,9 +1,11 @@
-# Provision single device with AWS
+# Provision single device with AWS using CLI
 
 [Single Thing Provisioning](https://docs.aws.amazon.com/iot/latest/developerguide/single-thing-provisioning.html), is a method used to provision individual IoT devices in AWS IoT Core. This method is ideal for scenarios where you need to provision devices one at a time.
 
 In this method you have two options: automated using a Python script or manual.  
 **This document describes the manual method using the [AWS CLI](./Common/cli/ReadMe.md) runningon STM32**
+
+This provisioning method is supported by the following project configurations:
 
 |       Build Config          | Provisioning method       |
 |:---------                   |:----------                |
@@ -19,15 +21,13 @@ If you’re using the Ethernet configuration, connect the Ethernet cable to the 
 
 Then, in all cases, connect the board to your PC via the ST-Link USB port to power it and enable programming/debugging.
 
-## 2. Flash and run the project
-
-## 3. Connect with serial terminal
+## 2. Connect with serial terminal
 
  Open a serial terminal (e.g., Tera Term, PuTTY, [Web based](https://googlechromelabs.github.io/serial-terminal/))  at 115200, 8 bits, 1 stop, no parity
 
  ![alt text](assets/TeraTerm_Config.png)
 
-## 4. Get the ThingName
+## 3. Get the ThingName
 
 Each board automatically generates a unique Thing Name in the format `stm32h573-< DeviceUID >`, where `< DeviceUID >` corresponds to the device's hardware Unique ID (UID). For example: `stm32h573-002C005B3332511738363236`. You can retrieve the Thing Name using the CLI. Save this device ID for further use. You can always retreive it using the `conf get` command
 
@@ -38,7 +38,7 @@ conf get
 ```
 ![alt text](assets/conf_get.png)
 
-## 5. Generate key pair
+## 4. Generate key pair
 
 Once the command is executed, the system generates an **ECC** key pair using the **MbedTLS** and **PKCS#11** libraries running on the host microcontroller. The key pair is stored in internal Flash via the **LFS** and **PKCS#11** stack. Upon success, the public key is printed to the terminal, confirming the device is ready to generate a **CSR** (Certificate Signing Request) for further provisioning or certificate issuance
 
@@ -49,7 +49,7 @@ pki generate key
 ```
  ![alt text](assets/pki_gererate_key.png)
 
- ## 6. Generate a Certificate
+ ## 5. Generate a Certificate
 
 Use the following command in the serial terminal to generate a Certificate:
 
@@ -63,7 +63,7 @@ This command uses **MbedTLS** and **PKCS#11** running on the host microcontrolle
 
 copy and save the certificate as **cert.pem**
 
-## 7. Register the Device with AWS IoT Core
+## 6. Register the Device with AWS IoT Core
 
 Now that you have your device's unique Thing Name and its certificate, follow these steps to register your device in AWS IoT Core:
 
@@ -114,7 +114,7 @@ Now that you have your device's unique Thing Name and its certificate, follow th
 
 ---
 
-## 8. Download the server root CA certificate
+## 7. Download the server root CA certificate
 
 Download the AWS root CA certificate:
 
@@ -124,7 +124,7 @@ wget https://www.amazontrust.com/repository/SFSRootCAG2.pem
 
 Or download it manually from [SFSRootCAG2.pem](https://www.amazontrust.com/repository/SFSRootCAG2.pem).
  
-## 9. Import the AWS server root CA certificate to STM32
+## 8. Import the AWS server root CA certificate to STM32
 
 We need to import the AWS server root CA to STM32 so it can be used for TLS authentication.
 
@@ -145,7 +145,7 @@ The board will verify the certificate and securely store it in internal Flash us
 
 ![alt text](assets/pki_import_root_ca.png)
 
-## 10. Set Runtime configuration
+## 9. Set Runtime configuration
 
 - Set the endpoint. You can find your AWS IoT endpoint address in the AWS IoT Console under **Settings** (look for the "Endpoint" value). Type the following command on the serial terminal, replacing `<your-aws-endpoint>` with your actual endpoint:
 
@@ -186,7 +186,7 @@ conf commit
 
 ![alt text](assets/aws_conf_get.png)
 
-## 11. Delete old certs from ST67 internal file system
+## 10. Delete old certs from ST67 internal file system
 
 If you are using the ST67_NCP configuration, it’s important to ensure that all previously stored certificates especially **corePKCS11_CA_Cert.dat**, **corePKCS11_Cert.dat**, and **corePKCS11_Key.dat** are removed from the module’s internal file system before importing new ones. This step is necessary to allow the firmware to load the updated certificates and private key into the ST67 module, which are then used for establishing the TLS/MQTT connection.
 
@@ -206,7 +206,7 @@ w6x_fs rm <filename>
 
 ![alt text](assets/w6x_fs_rm.png)
 
-## 12. Reset the board
+## 11. Reset the board
 
 In the serial terminal connected to your board, type the following command:
 
@@ -224,7 +224,7 @@ Once connected, you should see confirmation messages in the terminal indicating 
 
 ![alt text](assets/mqtt_connection.png)
 
-## 13. Monitor the MQTT messages
+## 12. Monitor the MQTT messages
 
 You can monitor MQTT messages from your device using the AWS IoT MQTT test client available in the AWS Console.
 
@@ -239,7 +239,7 @@ You should now see messages published by your device appear in real time in the 
 
 ![alt text](assets/aws_mqtt_test_client.png)
 
-## Run and Test the Examples
+## 13. Run and Test the Examples
 
 After provisioning your board, you can run and test the application features. Refer to the [Run and Test the Examples](readme.md#7-run-and-test-the-examples) section in the main README for details.
 

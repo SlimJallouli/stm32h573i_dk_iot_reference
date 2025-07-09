@@ -60,7 +60,6 @@
 static char subscribe_topic[MAXT_TOPIC_LENGTH];
 static char publish_topic[MAXT_TOPIC_LENGTH];
 static BaseType_t led_reported_status = pdFALSE;
-static BaseType_t led_desired_status = pdFALSE;
 static BaseType_t led_last_status = pdTRUE;
 static EventGroupHandle_t xLedEventGroup;
 #define LED_STATUS_CHANGED_EVENT    (1 << 0)
@@ -246,20 +245,31 @@ void parseLedControlMessage(const char *jsonMessage)
     /* Compare the value against "ON" */
     if (strncmp(desiredValue, "ON", desiredLen) == 0)
     {
-      led_desired_status = pdTRUE;
       led_reported_status = pdTRUE;
       HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_ON);
     }
     else
     {
-      led_desired_status = pdFALSE;
       led_reported_status = pdFALSE;
       HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_OFF);
     }
-
-    /* Notify the LED task of the change */
-    xEventGroupSetBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT);
   }
+  else
+  {
+    if (strcmp(jsonMessage, "ON") == 0)
+    {
+      led_reported_status = pdTRUE;
+      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_ON);
+    }
+    else if (strcmp(jsonMessage, "OFF") == 0)
+    {
+      led_reported_status = pdFALSE;
+      HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_OFF);
+    }
+  }
+
+  /* Notify the LED task of the change */
+  xEventGroupSetBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT);
 }
 
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo)

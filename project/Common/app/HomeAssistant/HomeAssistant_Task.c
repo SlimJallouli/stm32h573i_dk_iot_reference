@@ -265,34 +265,43 @@ void vHAConfigPublishTask(void *pvParameters)
 
     LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
 
-    if(xRetain)
+#if (DEMO_LED == 1)
+    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pThingName);
+
+    if (xRetain == pdTRUE)
     {
-      prvClearRetainedTopic(xQoS, xRetain, "homeassistant/sensor/mydevice_temp/config");
+        xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
+            "{"
+            "\"name\": \"LED\","
+            "\"unique_id\": \"%s_led\","
+            "\"command_topic\": \"%s/led/desired\","
+            "\"state_topic\": \"%s/led/reported\","
+            "\"value_template\": \"{{ value_json.ledStatus.reported }}\","
+            "\"payload_on\": \"ON\","
+            "\"payload_off\": \"OFF\","
+            "\"state_on\": \"ON\","
+            "\"state_off\": \"OFF\","
+            "\"retain\": true"
+            "}",
+            pThingName, pThingName, pThingName);
+    }
+    else
+    {
+        // Empty message for clearing retained config
+        xPayloadLength = 0;
+        cPayloadBuf[0] = '\0';
     }
 
-#if (DEMO_LED == 1)
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-             "homeassistant/switch/%s_led/config", pThingName);
-    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
-        "{"
-        "\"name\": \"LED\","
-        "\"unique_id\": \"%s_led\","
-        "\"command_topic\": \"%s/led_set\","
-        "\"state_topic\": \"%s/led_status\","
-        "\"value_template\": \"{{ value_json.ledStatus.reported }}\","
-        "\"payload_on\": \"ON\","
-        "\"payload_off\": \"OFF\","
-        "\"state_on\": \"ON\","
-        "\"state_off\": \"OFF\","
-        "\"retain\": true"
-        "}",
-        pThingName, pThingName, pThingName);
+    xMQTTStatus = prvPublishToTopic(xQoS, pdTRUE, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
 
-    xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
     if (xMQTTStatus == MQTTSuccess)
+    {
         LogInfo(("Published LED discovery config to: %s", configPUBLISH_TOPIC));
+    }
     else
+    {
         LogError(("Failed to publish LED discovery config"));
+    }
 
     vTaskDelay(1000);
 #endif
@@ -305,8 +314,10 @@ void vHAConfigPublishTask(void *pvParameters)
 
     for (int i = 0; i < 4; i++)
     {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-                 "homeassistant/sensor/%s_env_%d/config", pThingName, i);
+        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_env_%d/config", pThingName, i);
+
+        if (xRetain == pdTRUE)
+        {
         xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
             "{"
             "\"name\": \"%s\","
@@ -319,12 +330,24 @@ void vHAConfigPublishTask(void *pvParameters)
             "}",
             env_names[i], pThingName, i, pThingName,
             env_fields[i], env_units[i], env_classes[i]);
-
-        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-        if (xMQTTStatus == MQTTSuccess)
-            LogInfo(("Published env sensor %d discovery config", i));
+        }
         else
+        {
+            // Empty message for clearing retained config
+            xPayloadLength = 0;
+            cPayloadBuf[0] = '\0';
+        }
+
+        xMQTTStatus = prvPublishToTopic(xQoS, pdTRUE, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+
+        if (xMQTTStatus == MQTTSuccess)
+        {
+            LogInfo(("Published env sensor %d discovery config", i));
+        }
+        else
+        {
             LogError(("Failed to publish env sensor %d discovery config", i));
+        }
 
         vTaskDelay(1000);
     }
@@ -339,8 +362,10 @@ void vHAConfigPublishTask(void *pvParameters)
     {
         for (int a = 0; a < 3; a++)
         {
-            snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-                     "homeassistant/sensor/%s_%s_%s/config", pThingName, motion_roots[m], axes[a]);
+            snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, motion_roots[m], axes[a]);
+
+            if (xRetain == pdTRUE)
+            {
             xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
                 "{"
                 "\"name\": \"%s %s\","
@@ -353,12 +378,24 @@ void vHAConfigPublishTask(void *pvParameters)
                 motion_labels[m], axes[a], pThingName, motion_roots[m], axes[a],
                 pThingName, motion_roots[m], axes[a],
                 (m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")));
-
-            xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-            if (xMQTTStatus == MQTTSuccess)
-                LogInfo(("Published %s %s discovery config", motion_labels[m], axes[a]));
+            }
             else
+            {
+                // Empty message for clearing retained config
+                xPayloadLength = 0;
+                cPayloadBuf[0] = '\0';
+            }
+
+            xMQTTStatus = prvPublishToTopic(xQoS, pdTRUE, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+
+            if (xMQTTStatus == MQTTSuccess)
+            {
+                LogInfo(("Published %s %s discovery config", motion_labels[m], axes[a]));
+            }
+            else
+            {
                 LogError(("Failed to publish motion sensor discovery config"));
+            }
 
             vTaskDelay(1000);
         }
@@ -366,13 +403,15 @@ void vHAConfigPublishTask(void *pvParameters)
 #endif
 
 #if (DEMO_BUTTON == 1)
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH,
-             "homeassistant/binary_sensor/%s_button/config", pThingName);
+    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/binary_sensor/%s_button/config", pThingName);
+
+    if (xRetain == pdTRUE)
+    {
     xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
         "{"
         "\"name\": \"Button\","
         "\"unique_id\": \"%s_button\","
-        "\"state_topic\": \"%s/button_status\","
+        "\"state_topic\": \"%s/sensor/button/reported\","
         "\"value_template\": \"{{ value_json.buttonStatus.reported }}\","
         "\"payload_on\": \"ON\","
         "\"payload_off\": \"OFF\","
@@ -380,12 +419,24 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"retain\": true"
         "}",
         pThingName, pThingName);
-
-    xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-    if (xMQTTStatus == MQTTSuccess)
-        LogInfo(("Published Button discovery config"));
+    }
     else
+     {
+         // Empty message for clearing retained config
+         xPayloadLength = 0;
+         cPayloadBuf[0] = '\0';
+     }
+
+    xMQTTStatus = prvPublishToTopic(xQoS, pdTRUE, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+
+    if (xMQTTStatus == MQTTSuccess)
+    {
+        LogInfo(("Published Button discovery config"));
+    }
+    else
+    {
         LogError(("Failed to publish Button discovery config"));
+    }
 #endif
 
     vPortFree(cPayloadBuf);

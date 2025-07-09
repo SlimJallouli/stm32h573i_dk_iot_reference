@@ -41,22 +41,14 @@ Or
 ```
 Valid Command Payloads:
 
-```json
-{ 
-  "ledStatus": {
-     "desired": "OFF" 
-     } 
-}
+```
+OFF 
 ```
 
 Or
 
-```json
-{ 
-  "ledStatus": {
-     "desired": "ON" 
-     } 
-}
+```
+ON
 ```
 
 2. Environmental Sensor Payload
@@ -102,7 +94,7 @@ homeassistant/< component >/< device_id >_< sensor >/config
 
 ## Button
 
-homeassistant config Topic: 
+Example of homeassistant config Topic: 
 
 ```
 homeassistant/binary_sensor/stm32h573-002C005B3332511738363236_button/config
@@ -116,7 +108,7 @@ With payload:
 {
   "name": "Button",
   "unique_id": "stm32h573-002C005B3332511738363236_button",
-  "state_topic": "stm32h573-002C005B3332511738363236/button_status",
+  "state_topic": "stm32h573-002C005B3332511738363236/sensor/button/reported",
   "value_template": "{{ value_json.buttonStatus.reported }}",
   "payload_on": "ON",
   "payload_off": "OFF",
@@ -127,7 +119,8 @@ With payload:
 
 ## LED 
 
-homeassistant config Topic: 
+Example of homeassistant config Topic: 
+
 ```
 homeassistant/switch/stm32h573-002C005B3332511738363236_led/config
 ```
@@ -139,10 +132,10 @@ With payload:
 
 ```json
 {
-  "name": "STM32H573 LED",
+  "name": "LED",
   "unique_id": "stm32h573-002C005B3332511738363236_led",
-  "command_topic": "stm32h573-002C005B3332511738363236/led_set",
-  "state_topic": "stm32h573-002C005B3332511738363236/led_status",
+  "command_topic": "stm32h573-002C005B3332511738363236/led/desired",
+  "state_topic": "stm32h573-002C005B3332511738363236/led/reported",
   "value_template": "{{ value_json.ledStatus.reported }}",
   "payload_on": "ON",
   "payload_off": "OFF",
@@ -156,7 +149,8 @@ With payload:
 
 homeassistant config Topic: 
 ```
-homeassistant/sensor/stm32h573-002C005B3332511738363236_<sensor>/config 
+Example of homeassistant/sensor/stm32h573-002C005B3332511738363236_<sensor>/config 
+
 ```
 
 publish Topic: 
@@ -306,97 +300,3 @@ Use retain = true when publishing.
   }
 ]
 ```
-We’d use value_json.acceleration_mG.x (and .y, .z, etc.) for each axis.
-
-## Python Script: Publish All Discovery Payloads
-Install dependencies:
-
-bash
-pip install paho-mqtt
-Then use the script below:
-
-```python
-import paho.mqtt.publish as publish
-import json
-
-# === CONFIGURATION ===
-broker = "your-mqtt-broker.local"
-port = 1883
-device_id = "stm32h573-002C005B3332511738363236"
-retain = True
-
-def pub(topic_suffix, payload):
-    topic = f"homeassistant/{topic_suffix}"
-    publish.single(topic, json.dumps(payload), hostname=broker, port=port, retain=retain)
-    print(f"Published: {topic}")
-
-# === LED Switch ===
-pub(f"switch/{device_id}_led/config", {
-    "name": "STM32H573 LED",
-    "unique_id": f"{device_id}_led",
-    "command_topic": f"{device_id}/led_set",
-    "state_topic": f"{device_id}/led_status",
-    "value_template": "{{ value_json.ledStatus.reported }}",
-    "payload_on": "ON",
-    "payload_off": "OFF",
-    "state_on": "ON",
-    "state_off": "OFF",
-    "retain": True
-})
-
-# === Environmental Sensors ===
-env_topic = f"{device_id}/env_sensor_data"
-sensors = [
-    ("temp0", "Temperature Sensor 0", "temp_0_c", "°C", "temperature"),
-    ("temp1", "Temperature Sensor 1", "temp_1_c", "°C", "temperature"),
-    ("humidity", "Humidity", "rh_pct", "%", "humidity"),
-    ("pressure", "Barometric Pressure", "baro_mbar", "mbar", "pressure")
-]
-for key, name, field, unit, cls in sensors:
-    pub(f"sensor/{device_id}_{key}/config", {
-        "name": name,
-        "unique_id": f"{device_id}_{key}",
-        "state_topic": env_topic,
-        "value_template": f"{{{{ value_json.{field} }}}}",
-        "unit_of_measurement": unit,
-        "device_class": cls,
-        "retain": True
-    })
-
-# === Motion Sensors ===
-motion_topic = f"{device_id}/motion_sensor_data"
-axes = {
-    "acceleration_mG": "Acceleration",
-    "gyro_mDPS": "Gyroscope",
-    "magnetometer_mGauss": "Magnetometer"
-}
-for sensor, label in axes.items():
-    for axis in ("x", "y", "z"):
-        unit = "mG" if "acceleration" in sensor else "mDPS" if "gyro" in sensor else "mG"
-        pub(f"sensor/{device_id}_{sensor}_{axis}/config", {
-            "name": f"{label} {axis.upper()}",
-            "unique_id": f"{device_id}_{sensor}_{axis}",
-            "state_topic": motion_topic,
-            "value_template": f"{{{{ value_json.{sensor}.{axis} }}}}",
-            "unit_of_measurement": unit,
-            "retain": True
-        })
-
-# === Button Sensor (Planned) ===
-pub(f"binary_sensor/{device_id}_button/config", {
-    "name": "Push Button",
-    "unique_id": f"{device_id}_button",
-    "state_topic": f"{device_id}/button_status",
-    "value_template": "{{ value_json.buttonStatus.reported }}",
-    "payload_on": "ON",
-    "payload_off": "OFF",
-    "device_class": "occupancy",
-    "retain": True
-})
-```
-✅ Notes
-MQTT discovery must be enabled in Home Assistant.
-
-Use retain = true when publishing config topics.
-
-AWS IoT Core requires bridging for HA discovery.

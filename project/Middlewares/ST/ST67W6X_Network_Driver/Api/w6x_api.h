@@ -918,8 +918,8 @@ W6X_Status_t W6X_MQTT_Unsubscribe(uint8_t *Topic);
   * @param  Message_len: Length of the message
   * @return Operation status
   */
-//W6X_Status_t W6X_MQTT_Publish(uint8_t *Topic, uint8_t *Message, uint32_t Message_len);
-W6X_Status_t W6X_MQTT_Publish(uint8_t *Topic, uint8_t *Message, uint32_t Message_len, uint32_t qos, uint32_t retain);
+W6X_Status_t W6X_MQTT_Publish(uint8_t *Topic, uint8_t *Message, uint32_t Message_len);
+
 /**
   * @brief  Convert the MQTT state to a string
   * @param  state: MQTT state
