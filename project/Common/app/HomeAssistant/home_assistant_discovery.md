@@ -300,3 +300,112 @@ Use retain = true when publishing.
   }
 ]
 ```
+
+
+# Home Assistant MQTT Bridge to AWS IoT Core with Auto Discovery
+
+This guide outlines the steps to configure Home Assistant (HA) to connect to AWS IoT Core via Mosquitto and enable MQTT discovery for IoT devices.
+
+## 🧰 Prerequisites
+
+- Home Assistant running with File Editor and Mosquitto Broker add-ons installed
+- AWS IoT Core configured with:
+  - Device certificates
+  - MQTT topics for config and state
+- Devices publishing retained MQTT discovery messages
+
+---
+
+## 🔧 Step 1: Install File Editor Add-on
+
+1. Go to **Settings → Add-ons → Add-on Store**
+2. Search for **File Editor** and install it
+3. Under the **Configuration** tab:
+   - Disable `enforce_basepath` to allow editing any file
+4. Under the **Info** tab:
+   - Enable `Start on boot`
+   - Enable `Show in sidebar`
+   - Click **Start**
+
+---
+
+## 🔌 Step 2: Install Mosquitto Broker Add-on
+
+1. Go to **Settings → Add-ons → Add-on Store**
+2. Search for **Mosquitto Broker** and install it
+3. Under the **Configuration** tab:
+   - Enable `Customize configuration`
+   - This allows Mosquitto to load configs from `/share/mosquitto`
+4. Under the **Info** tab:
+   - Enable `Start on boot`
+   - Click **Start**
+
+---
+
+## 🛠 Step 3: Create Mosquitto Bridge Config
+
+1. Open **File Editor**
+2. Navigate to `/share`
+3. Create a folder named `mosquitto`
+4. Inside `mosquitto`, create a file named `aws_bridge.conf`
+5. Paste the following configuration:
+
+```ini
+connection aws_bridge
+address <your-aws-endpoint>:8883
+clientid home-assistant-bridge
+
+bridge_cafile /ssl/AmazonRootCA1.pem
+bridge_certfile /ssl/certificate.pem.crt
+bridge_keyfile /ssl/private.pem.key
+
+# Allow bidirectional traffic for all device topics
+topic +/# both 0
+
+# Allow bidirectional traffic for Home Assistant discovery
+topic homeassistant/# both 0
+
+start_type automatic
+try_private false
+notifications false
+```
+
+Replace <your-aws-endpoint> with your actual AWS IoT Core endpoint.
+
+🔁 Step 4: Restart Mosquitto Broker
+Go to Settings → Add-ons → Mosquitto Broker
+
+Click Restart
+
+Under the Log tab, confirm that aws_bridge.conf was loaded successfully
+
+📡 Step 5: Enable MQTT Integration in Home Assistant
+Go to Settings → Devices & Services
+
+Locate the MQTT integration (or add it if not present)
+
+Click Configure
+
+Ensure the following settings:
+
+Enable Discovery ✅
+
+Discovery Prefix: homeassistant
+
+Click Submit
+
+🧪 Step 6: Validate Discovery
+Go to Developer Tools → MQTT
+
+Subscribe to:
+
+homeassistant/#
+Confirm that retained config messages are received
+
+Confirm that state messages are published to the correct topics
+
+Entities should appear automatically under Settings → Devices & Services → MQTT
+
+
+---
+

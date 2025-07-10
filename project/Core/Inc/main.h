@@ -189,22 +189,22 @@ void Error_Handler(void);
 #define MBEDTLS_DEBUG_THRESHOLD                 MBEDTLS_DEBUG_INFO
 
 /******************** Tasks config ********************/
-#define DEMO_PUB_SUB                            0
-#define DEMO_OTA                                1
-#define DEMO_ENV_SENSOR                         1
-#define DEMO_MOTION_SENSOR                      1
-#define DEMO_SHADOW                             1
-#define DEMO_DEFENDER                           1
-#define DEMO_LED                                1
-#define DEMO_BUTTON                             1
+#define DEMO_PUB_SUB                            0   // Publish/Subscribe Example
+#define DEMO_OTA                                1   // OTA Update Example
+#define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
+#define DEMO_MOTION_SENSOR                      1   // Motion Sensor Example
+#define DEMO_SHADOW                             1   // AWS IoT Shadow Example
+#define DEMO_DEFENDER                           1   // AWS IoT Defender Example
+#define DEMO_LED                                1   // LED Control Example
+#define DEMO_BUTTON                             1   // Button Status Example
 #if !defined(ST67W6X_NCP)
-#define DEMO_HOME_ASSISTANT                     1
+#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
 #endif
-#define DEMO_ECHO_SERVER                        0
-#define DEMO_ECHO_CLIENT                        0
-#define DEMO_PING                               0
+#define DEMO_ECHO_SERVER                        0   // Echo server example
+#define DEMO_ECHO_CLIENT                        0   // Echo Client example
+#define DEMO_PING                               0   // Ping example
 #if defined(ST67W6X_NCP)
-#define DEMO_SNTP                               1
+#define DEMO_SNTP                               1   // SNTP example
 #endif
 
 #define MQTT_ENABLED                            (DEMO_PUB_SUB       || \

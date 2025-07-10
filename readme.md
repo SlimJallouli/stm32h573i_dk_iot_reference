@@ -380,3 +380,37 @@ This project uses several external libraries as git submodules. Make sure to ini
 
 ---
 
+## 11. Enabling and Disabling Examples
+
+The available examples in this project can be enabled or disabled by modifying the configuration macros in the `project/Core/Inc/main.h` file. Each example is controlled by a `#define` statement—setting the value to `1` enables the example, while setting it to `0` disables it.
+
+```c
+#define DEMO_PUB_SUB                            0   // Publish/Subscribe Example
+#define DEMO_OTA                                1   // OTA Update Example
+#define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
+#define DEMO_MOTION_SENSOR                      1   // Motion Sensor Example
+#define DEMO_SHADOW                             1   // AWS IoT Shadow Example
+#define DEMO_DEFENDER                           1   // AWS IoT Defender Example
+#define DEMO_LED                                1   // LED Control Example
+#define DEMO_BUTTON                             1   // Button Status Example
+#if !defined(ST67W6X_NCP)
+#define DEMO_HOME_ASSISTANT                     1   // Home Assistant Discovery Example
+#endif
+#define DEMO_ECHO_SERVER                        0   // Echo server example
+#define DEMO_ECHO_CLIENT                        0   // Echo Client example
+#define DEMO_PING                               0   // Ping example
+#if defined(ST67W6X_NCP)
+#define DEMO_SNTP                               1   // SNTP example
+#endif
+```
+
+To **disable** an example, set its value to `0`.  
+To **enable** an example, set its value to `1`.
+
+> **Example:**  
+> To disable the Motion Sensor Example, change  
+> `#define DEMO_MOTION_SENSOR 1`  
+> to  
+> `#define DEMO_MOTION_SENSOR 0`
+
+After making changes, rebuild and flash the project to apply your configuration.

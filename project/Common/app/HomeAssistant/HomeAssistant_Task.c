@@ -146,7 +146,7 @@ void vHAConfigPublishTask(void *pvParameters);
  *
  * @return MQTTSuccess if the empty publish succeeded, appropriate MQTTStatus_t error otherwise.
  */
-static MQTTStatus_t prvClearRetainedTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic);
+static MQTTStatus_t prvClearRetainedTopic(char *pcTopic);
 
 /*-----------------------------------------------------------*/
 
@@ -212,7 +212,7 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool retain, char *pcTopic
 
       if (xNotifyStatus == pdTRUE)
       {
-        if(ulNotifiedValue)
+        if (ulNotifiedValue)
         {
           xMQTTStatus = MQTTSendFailed;
         }
@@ -234,42 +234,43 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool retain, char *pcTopic
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t prvClearRetainedTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic)
+static MQTTStatus_t prvClearRetainedTopic(char *pcTopic)
 {
-    configASSERT(pcTopic != NULL);
-    LogInfo(("Clearing retained message on topic: %s", pcTopic));
-    return prvPublishToTopic(xQoS, xRetain, pcTopic, NULL, 0);
+  configASSERT(pcTopic != NULL);
+  LogInfo(("Clearing retained message on topic: %s", pcTopic));
+  return prvPublishToTopic(MQTTQoS0, pdTRUE, pcTopic, NULL, 0);
 }
 /*-----------------------------------------------------------*/
 
 void vHAConfigPublishTask(void *pvParameters)
 {
-    char *cPayloadBuf = NULL;
-    size_t xPayloadLength = 0;
-    MQTTStatus_t xMQTTStatus;
-    MQTTQoS_t xQoS = MQTTQoS0;
-    bool xRetain = pdTRUE;
-    char *pThingName = NULL;
-    size_t uxThingNameLen = 0;
+  char *cPayloadBuf = NULL;
+  size_t xPayloadLength = 0;
+  MQTTStatus_t xMQTTStatus;
+  MQTTQoS_t xQoS = MQTTQoS0;
+  bool xRetain = pdTRUE;
+  char *pThingName = NULL;
+  size_t uxThingNameLen = 0;
 
-    vSleepUntilMQTTAgentReady();
-    xMQTTAgentHandle = xGetMqttAgentHandle();
-    configASSERT(xMQTTAgentHandle != NULL);
-    vSleepUntilMQTTAgentConnected();
+  vSleepUntilMQTTAgentReady();
+  xMQTTAgentHandle = xGetMqttAgentHandle();
+  configASSERT(xMQTTAgentHandle != NULL);
+  vSleepUntilMQTTAgentConnected();
 
-    pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxThingNameLen);
-    configASSERT(pThingName != NULL);
+  pThingName = KVStore_getStringHeap(CS_CORE_THING_NAME, &uxThingNameLen);
+  configASSERT(pThingName != NULL);
 
-    cPayloadBuf = (char *)pvPortMalloc(configPAYLOAD_BUFFER_LENGTH);
-    configASSERT(cPayloadBuf != NULL);
+  cPayloadBuf = (char*) pvPortMalloc(configPAYLOAD_BUFFER_LENGTH);
+  configASSERT(cPayloadBuf != NULL);
 
-    LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
+  LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
 
 #if (DEMO_LED == 1)
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pThingName);
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pThingName);
 
-    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
-        "{"
+  if (xRetain)
+  {
+    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
         "\"name\": \"LED\","
         "\"unique_id\": \"%s_led\","
         "\"command_topic\": \"%s/led/desired\","
@@ -281,34 +282,36 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"state_off\": \"OFF\","
         "\"retain\": true,"
         "\"device\": {"
-            "\"identifiers\": [\"%s\"],"
-            "\"manufacturer\": \"STMicroelectronics\","
-            "\"model\": \"STM32H573 Dev Board\","
-            "\"name\": \"%s\","
-            "\"fw_version\": \"v%d.%d.%d\""
+        "\"identifiers\": [\"%s\"],"
+        "\"manufacturer\": \"STMicroelectronics\","
+        "\"model\": \"STM32H573 Dev Board\","
+        "\"name\": \"%s\""
         "}"
-        "}",
-        pThingName, pThingName, pThingName, pThingName, BOARD,
-        appFirmwareVersion.u.x.major,
-        appFirmwareVersion.u.x.minor,
-        appFirmwareVersion.u.x.build);
+        "}", pThingName, pThingName, pThingName, pThingName, BOARD);
 
-    if (xPayloadLength >= configPAYLOAD_BUFFER_LENGTH)
+    if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
     {
-        LogError(("LED payload truncated"));
+      xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
     }
     else
     {
-        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
-        LogInfo(("Published LED config status: %s", xMQTTStatus == MQTTSuccess ? "Success" : "Failed"));
+      LogError(("LED payload truncated"));
     }
+  }
+  else
+  {
+    prvClearRetainedTopic(configPUBLISH_TOPIC);
+  }
+
+  vTaskDelay(500);
 #endif
 
 #if (DEMO_BUTTON == 1)
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/binary_sensor/%s_button/config", pThingName);
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/binary_sensor/%s_button/config", pThingName);
 
-    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
-        "{"
+  if (xRetain)
+  {
+    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
         "\"name\": \"Button\","
         "\"unique_id\": \"%s_button\","
         "\"state_topic\": \"%s/sensor/button/reported\","
@@ -318,124 +321,126 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"device_class\": \"occupancy\","
         "\"retain\": true,"
         "\"device\": {"
-            "\"identifiers\": [\"%s\"],"
-            "\"manufacturer\": \"STMicroelectronics\","
-            "\"model\": \"User Button\","
-            "\"name\": \"%s\","
-            "\"fw_version\": \"v%d.%d.%d\""
+        "\"identifiers\": [\"%s\"],"
+        "\"manufacturer\": \"STMicroelectronics\","
+        "\"model\": \"User Button\","
+        "\"name\": \"%s\""
         "}"
-        "}",
-        pThingName, pThingName, pThingName, BOARD,
-        appFirmwareVersion.u.x.major,
-        appFirmwareVersion.u.x.minor,
-        appFirmwareVersion.u.x.build);
+        "}", pThingName, pThingName, pThingName, BOARD);
 
-    if (xPayloadLength >= configPAYLOAD_BUFFER_LENGTH)
+    if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
     {
-        LogError(("Button payload truncated"));
+      xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
     }
     else
     {
-        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
-        LogInfo(("Published Button config status: %s", xMQTTStatus == MQTTSuccess ? "Success" : "Failed"));
+      LogError(("Button payload truncated"));
     }
+  }
+  else
+  {
+    prvClearRetainedTopic(configPUBLISH_TOPIC);
+  }
+
+  vTaskDelay(500);
 #endif
 
 #if (DEMO_ENV_SENSOR == 1)
-    const char *env_fields[] = {"temp_0_c", "temp_1_c", "rh_pct", "baro_mbar"};
-    const char *env_names[] = {"Temperature 0", "Temperature 1", "Humidity", "Pressure"};
-    const char *env_units[] = {"°C", "°C", "%", "mbar"};
-    const char *env_classes[] = {"temperature", "temperature", "humidity", "pressure"};
+  const char *env_fields[] = { "temp_0_c", "temp_1_c", "rh_pct", "baro_mbar" };
+  const char *env_names[] = { "Temperature 0", "Temperature 1", "Humidity", "Pressure" };
+  const char *env_units[] = { "°C", "°C", "%", "mbar" };
+  const char *env_classes[] = { "temperature", "temperature", "humidity", "pressure" };
 
-    for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++)
+  {
+    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_env_%d/config", pThingName, i);
+
+    if (xRetain)
     {
-        snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_env_%d/config", pThingName, i);
+      xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+          "\"name\": \"%s\","
+          "\"unique_id\": \"%s_env_%d\","
+          "\"state_topic\": \"%s/sensor/env\","
+          "\"value_template\": \"{{ value_json.%s }}\","
+          "\"unit_of_measurement\": \"%s\","
+          "\"device_class\": \"%s\","
+          "\"retain\": true,"
+          "\"device\": {"
+          "\"identifiers\": [\"%s\"],"
+          "\"manufacturer\": \"STMicroelectronics\","
+          "\"model\": \"HTS221 / LPS22HH\","
+          "\"name\": \"%s\""
+          "}"
+          "}", env_names[i], pThingName, i, pThingName, env_fields[i], env_units[i], env_classes[i], pThingName, BOARD);
 
-        xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
-            "{"
-            "\"name\": \"%s\","
-            "\"unique_id\": \"%s_env_%d\","
-            "\"state_topic\": \"%s/env_sensor_data\","
-            "\"value_template\": \"{{{{ value_json.%s }}}}\","
-            "\"unit_of_measurement\": \"%s\","
-            "\"device_class\": \"%s\","
-            "\"retain\": true,"
-            "\"device\": {"
-                "\"identifiers\": [\"%s\"],"
-                "\"manufacturer\": \"STMicroelectronics\","
-                "\"model\": \"HTS221 / LPS22HH\","
-                "\"name\": \"%s\","
-                "\"fw_version\": \"v%d.%d.%d\""
-            "}"
-            "}",
-            env_names[i], pThingName, i, pThingName,
-            env_fields[i], env_units[i], env_classes[i], pThingName, BOARD,
-            appFirmwareVersion.u.x.major,
-            appFirmwareVersion.u.x.minor,
-            appFirmwareVersion.u.x.build);
-
-        if (xPayloadLength >= configPAYLOAD_BUFFER_LENGTH)
-        {
-            LogError(("Env sensor %d payload truncated", i));
-            continue;
-        }
-
-        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
-        LogInfo(("Published env sensor %d config status: %s", i, xMQTTStatus == MQTTSuccess ? "Success" : "Failed"));
+      if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+      {
+        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+      }
+      else
+      {
+        LogError(("Env sensor %d payload truncated", i));
+      }
     }
+    else
+    {
+      prvClearRetainedTopic(configPUBLISH_TOPIC);
+    }
+    vTaskDelay(500);
+  }
 #endif
 
 #if (DEMO_MOTION_SENSOR == 1)
-    const char *motion_roots[] = {"acceleration_mG", "gyro_mDPS", "magnetometer_mGauss"};
-    const char *motion_labels[] = {"Acceleration", "Gyroscope", "Magnetometer"};
-    const char *motion_models[] = {"ISM330DHCX", "ISM330DHCX", "IIS2MDCTR"};
-    const char *axes[] = {"x", "y", "z"};
+  const char *motion_roots[] = { "acceleration_mG", "gyro_mDPS", "magnetometer_mGauss" };
+  const char *motion_labels[] = { "Acceleration", "Gyroscope", "Magnetometer" };
+  const char *motion_models[] = { "ISM330DHCX", "ISM330DHCX", "IIS2MDCTR" };
+  const char *axes[] = { "x", "y", "z" };
 
-    for (int m = 0; m < 3; m++)
+  for (int m = 0; m < 3; m++)
+  {
+    for (int a = 0; a < 3; a++)
     {
-        for (int a = 0; a < 3; a++)
+      snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, motion_roots[m], axes[a]);
+
+      if (xRetain)
+      {
+        xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+            "\"name\": \"%s %s\","
+            "\"unique_id\": \"%s_%s_%s\","
+            "\"state_topic\": \"%s/sensor/motion\","
+            "\"value_template\": \"{{ value_json.%s.%s }}\","
+            "\"unit_of_measurement\": \"%s\","
+            "\"retain\": true,"
+            "\"device\": {"
+            "\"identifiers\": [\"%s\"],"
+            "\"manufacturer\": \"STMicroelectronics\","
+            "\"model\": \"%s\","
+            "\"name\": \"%s\""
+            "}"
+            "}", motion_labels[m], axes[a], pThingName, motion_roots[m], axes[a], pThingName, motion_roots[m], axes[a], (
+            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")), pThingName, motion_models[m], BOARD);
+
+        if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
         {
-            snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, motion_roots[m], axes[a]);
-
-            xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH,
-                "{"
-                "\"name\": \"%s %s\","
-                "\"unique_id\": \"%s_%s_%s\","
-                "\"state_topic\": \"%s/motion_sensor_data\","
-                "\"value_template\": \"{{{{ value_json.%s.%s }}}}\","
-                "\"unit_of_measurement\": \"%s\","
-                "\"retain\": true,"
-                "\"device\": {"
-                    "\"identifiers\": [\"%s\"],"
-                    "\"manufacturer\": \"STMicroelectronics\","
-                    "\"model\": \"%s\","
-                    "\"name\": \"%s\","
-                    "\"fw_version\": \"v%d.%d.%d\""
-                "}"
-                "}",
-                motion_labels[m], axes[a], pThingName, motion_roots[m], axes[a],
-                pThingName, motion_roots[m], axes[a],
-                (m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")),
-                pThingName, motion_models[m], BOARD,
-                appFirmwareVersion.u.x.major,
-                appFirmwareVersion.u.x.minor,
-                appFirmwareVersion.u.x.build);
-
-            if (xPayloadLength >= configPAYLOAD_BUFFER_LENGTH)
-            {
-                LogError(("Motion sensor %s %s payload truncated", motion_labels[m], axes[a]));
-                continue;
-            }
-
-            xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t *)cPayloadBuf, xPayloadLength);
-            LogInfo(("Published %s %s config status: %s", motion_labels[m], axes[a], xMQTTStatus == MQTTSuccess ? "Success" : "Failed"));
+          xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
         }
+        else
+        {
+          LogError(("Motion sensor %s %s payload truncated", motion_labels[m], axes[a]));
+        }
+      }
+      else
+      {
+        prvClearRetainedTopic(configPUBLISH_TOPIC);
+      }
+
+      vTaskDelay(500);
     }
+  }
 #endif
 
-    vPortFree(cPayloadBuf);
-    vPortFree(pThingName);
-    LogInfo("Discovery config task completed. Deleting itself.");
-
-    vTaskDelete(NULL);
+  vPortFree(cPayloadBuf);
+  vPortFree(pThingName);
+  LogInfo("Discovery config task completed. Deleting itself.");
+  vTaskDelete(NULL);
 }
