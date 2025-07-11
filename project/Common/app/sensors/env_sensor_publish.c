@@ -274,7 +274,7 @@ static BaseType_t xUpdateSensorData(EnvironmentalSensorData_t *pxData)
 #else
   pxData->fHumidity           += 5.0f;
   pxData->fTemperature0       += 7.0f;
-  pxData->fBarometricPressure += 100.0f;
+  pxData->fBarometricPressure += 14.0f;
   pxData->fTemperature1       += 4.0f;
 
   pxData->fHumidity           = fmod(pxData->fHumidity          , 100.0f);
