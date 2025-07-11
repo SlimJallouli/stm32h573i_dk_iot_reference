@@ -235,6 +235,8 @@ void parseLedControlMessage(const char *jsonMessage)
   JSONStatus_t result;
   char *desiredValue = NULL;
   size_t desiredLen = 0;
+  BaseType_t led_status_changed = pdFALSE;
+
 
   /* Parse the JSON document */
   result = JSON_Search((char *)jsonMessage, strlen(jsonMessage), "ledStatus.desired", // key path
@@ -246,6 +248,7 @@ void parseLedControlMessage(const char *jsonMessage)
     if (strncmp(desiredValue, "ON", desiredLen) == 0)
     {
       led_reported_status = pdTRUE;
+      led_status_changed = pdTRUE;
       HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_ON);
     }
     else
@@ -259,17 +262,22 @@ void parseLedControlMessage(const char *jsonMessage)
     if (strcmp(jsonMessage, "ON") == 0)
     {
       led_reported_status = pdTRUE;
+      led_status_changed = pdTRUE;
       HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_ON);
     }
     else if (strcmp(jsonMessage, "OFF") == 0)
     {
       led_reported_status = pdFALSE;
+      led_status_changed = pdTRUE;
       HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, LED_RED_OFF);
     }
   }
 
-  /* Notify the LED task of the change */
-  xEventGroupSetBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT);
+  if(led_status_changed == pdTRUE)
+  {
+    /* Notify the LED task of the change */
+    xEventGroupSetBits(xLedEventGroup, LED_STATUS_CHANGED_EVENT);
+  }
 }
 
 static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContext, MQTTAgentReturnInfo_t *pxReturnInfo)
@@ -419,7 +427,7 @@ void vLEDTask(void *pvParameters)
   BaseType_t xStatus = pdPASS;
   MQTTStatus_t xMQTTStatus;
   MQTTQoS_t xQoS = MQTTQoS1;
-  bool xRetain = pdFALSE;
+  bool xRetain = pdTRUE;
   char *pThingName = NULL;
   size_t uxTempSize = 0;
   EventBits_t uxBits;
@@ -439,11 +447,6 @@ void vLEDTask(void *pvParameters)
 
   snprintf(configPUBLISH_TOPIC  , MAXT_TOPIC_LENGTH, "%s/led/reported", pThingName);
   snprintf(configSUBSCRIBE_TOPIC, MAXT_TOPIC_LENGTH, "%s/led/desired" , pThingName);
-
-  if(xRetain)
-  {
-    prvClearRetainedTopic(MQTTQoS0, true, configPUBLISH_TOPIC);
-  }
 
   xLedEventGroup = xEventGroupCreate();
 
