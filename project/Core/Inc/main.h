@@ -192,8 +192,8 @@ void Error_Handler(void);
 #define DEMO_PUB_SUB                            0   // Publish/Subscribe Example
 #define DEMO_OTA                                1   // OTA Update Example
 #define DEMO_ENV_SENSOR                         1   // Environmental Sensor Example
-#define DEMO_MOTION_SENSOR                      1   // Motion Sensor Example
-#define DEMO_SHADOW                             1   // AWS IoT Shadow Example
+#define DEMO_MOTION_SENSOR                      0   // Motion Sensor Example
+#define DEMO_SHADOW                             0   // AWS IoT Shadow Example
 #define DEMO_DEFENDER                           1   // AWS IoT Defender Example
 #define DEMO_LED                                1   // LED Control Example
 #define DEMO_BUTTON                             1   // Button Status Example
