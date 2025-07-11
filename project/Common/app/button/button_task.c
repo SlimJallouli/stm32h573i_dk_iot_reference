@@ -129,7 +129,7 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
  * @param[in] pucPayload The payload blob to be published.
  * @param[in] xPayloadLength Length of the payload blob to be published.
  */
-static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength);
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength);
 
 /**
  * @brief Callback function for GPIO rising edge interrupt on the user button.
@@ -181,7 +181,7 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
 {
   MQTTPublishInfo_t xPublishInfo = { 0UL };
   MQTTAgentCommandContext_t xCommandContext = { 0 };
@@ -198,7 +198,7 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, char *pcTopic, uint8_t *pu
 
   /* Configure the publish operation. */
   xPublishInfo.qos = xQoS;
-  xPublishInfo.retain = pdFALSE;
+  xPublishInfo.retain = xRetain;
   xPublishInfo.pTopicName = pcTopic;
   xPublishInfo.topicNameLength = (uint16_t) strlen(pcTopic);
   xPublishInfo.pPayload = pucPayload;
@@ -275,6 +275,7 @@ void vButtonTask(void *pvParameters)
     size_t xPayloadLength;
     MQTTStatus_t xMQTTStatus;
     MQTTQoS_t xQoS = MQTTQoS0;
+    bool xRetain = pdTRUE;
     char *pThingName = NULL;
     size_t uxTempSize = 0;
     EventBits_t uxBits;
@@ -303,6 +304,9 @@ void vButtonTask(void *pvParameters)
     GPIO_EXTI_Register_Rising_Callback (USER_Button_Pin, user_button_rising_event, NULL);
     GPIO_EXTI_Register_Falling_Callback(USER_Button_Pin, user_button_falling_event, NULL);
 
+    /* Force button state update */
+    xEventGroupSetBits(xButtonEventGroup, BUTTON_FALLING_EVENT);
+
     for (;;)
     {
         uxBits = xEventGroupWaitBits(xButtonEventGroup,
@@ -326,7 +330,7 @@ void vButtonTask(void *pvParameters)
         LogInfo(("Publishing button status to: %s, message: %.*s",
                  configPUBLISH_TOPIC, xPayloadLength, cPayloadBuf));
 
-        xMQTTStatus = prvPublishToTopic(xQoS, configPUBLISH_TOPIC,
+        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC,
                                         (uint8_t *) cPayloadBuf, xPayloadLength);
 
         if (xMQTTStatus == MQTTSuccess)
