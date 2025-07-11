@@ -246,7 +246,6 @@ void vHAConfigPublishTask(void *pvParameters)
 {
   char *cPayloadBuf = NULL;
   size_t xPayloadLength = 0;
-  MQTTStatus_t xMQTTStatus;
   MQTTQoS_t xQoS = MQTTQoS0;
   bool xRetain = pdTRUE;
   char *pThingName = NULL;
@@ -284,14 +283,14 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"device\": {"
         "\"identifiers\": [\"%s\"],"
         "\"manufacturer\": \"STMicroelectronics\","
-        "\"model\": \"STM32H573 Dev Board\","
+        "\"model\": \"%s\","
         "\"name\": \"%s\""
         "}"
-        "}", pThingName, pThingName, pThingName, pThingName, BOARD);
+        "}", pThingName, pThingName, pThingName, pThingName, BOARD, pThingName);
 
     if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
     {
-      xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+      prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
     }
     else
     {
@@ -323,14 +322,14 @@ void vHAConfigPublishTask(void *pvParameters)
         "\"device\": {"
         "\"identifiers\": [\"%s\"],"
         "\"manufacturer\": \"STMicroelectronics\","
-        "\"model\": \"User Button\","
+        "\"model\": \"%s\","
         "\"name\": \"%s\""
         "}"
-        "}", pThingName, pThingName, pThingName, BOARD);
+        "}", pThingName, pThingName, pThingName, BOARD, pThingName);
 
     if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
     {
-      xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+      prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
     }
     else
     {
@@ -353,7 +352,7 @@ void vHAConfigPublishTask(void *pvParameters)
 
   for (int i = 0; i < 4; i++)
   {
-    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_env_%d/config", pThingName, i);
+    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, env_fields[i]);
 
     if (xRetain)
     {
@@ -368,14 +367,14 @@ void vHAConfigPublishTask(void *pvParameters)
           "\"device\": {"
           "\"identifiers\": [\"%s\"],"
           "\"manufacturer\": \"STMicroelectronics\","
-          "\"model\": \"HTS221 / LPS22HH\","
+          "\"model\": \"%s\","
           "\"name\": \"%s\""
           "}"
-          "}", env_names[i], pThingName, i, pThingName, env_fields[i], env_units[i], env_classes[i], pThingName, BOARD);
+          "}", env_names[i], pThingName, i, pThingName, env_fields[i], env_units[i], env_classes[i], pThingName, BOARD, pThingName);
 
       if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
       {
-        xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+        prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
       }
       else
       {
@@ -393,7 +392,6 @@ void vHAConfigPublishTask(void *pvParameters)
 #if (DEMO_MOTION_SENSOR == 1)
   const char *motion_roots[] = { "acceleration_mG", "gyro_mDPS", "magnetometer_mGauss" };
   const char *motion_labels[] = { "Acceleration", "Gyroscope", "Magnetometer" };
-  const char *motion_models[] = { "ISM330DHCX", "ISM330DHCX", "IIS2MDCTR" };
   const char *axes[] = { "x", "y", "z" };
 
   for (int m = 0; m < 3; m++)
@@ -418,11 +416,11 @@ void vHAConfigPublishTask(void *pvParameters)
             "\"name\": \"%s\""
             "}"
             "}", motion_labels[m], axes[a], pThingName, motion_roots[m], axes[a], pThingName, motion_roots[m], axes[a], (
-            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")), pThingName, motion_models[m], BOARD);
+            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")), pThingName, BOARD, pThingName);
 
         if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
         {
-          xMQTTStatus = prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+          prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
         }
         else
         {
