@@ -22,10 +22,13 @@ export BOARD='STM32H573I-DK'
 #export BOARD='NUCLEO-H536ZI'
 #export BOARD='NUCLEO-N657x0-Q'
 
-export BIN_LOCATION="../../project/MXCHIP_FleeProvisioning/"
-export BIN_FILE="stm32h573i_dk_w6x_iot_reference.bin"
+export FILE_VERSION="0.9.2"
+export BIN_LOCATION="../../project/MXCHIP/"
+# export BIN_LOCATION="./${FILE_VERSION}/"
+export BIN_FILE="stm32h573i_dk_iot_reference.bin"
 export THING_NAME='stm32h573-002C005B3332511738363236'
 export THING_GROUP_NAME="STM32H573I-DK"
+
 
 export AWS_CLI_PROFILE='default'
 export ROLE='ld-st67-OTA_ROLE'
@@ -49,7 +52,7 @@ clear
 # source ../.venv/bin/activate
 
 # python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing=$THING_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD
-python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD
+python $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$THING_GROUP_NAME --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path="$BIN_LOCATION" --certarn=$CERT_ARN --board=$BOARD --version=$FILE_VERSION
 
 # Reserved for thing group updates
 # python3 $QC_PATH/hota_update.py --profile=$AWS_CLI_PROFILE --thing-group=$BOARD --bin-file=$BIN_FILE --bucket=$S3BUCKET --role=$ROLE --signer=$OTA_SIGNING_PROFILE --path=$BIN_LOCATION --certarn=$CERT_ARN

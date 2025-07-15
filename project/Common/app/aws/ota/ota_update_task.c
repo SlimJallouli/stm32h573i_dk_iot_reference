@@ -56,6 +56,10 @@
 #include "semphr.h"
 #include "sys_evt.h"
 
+#if DEMO_HOME_ASSISTANT
+#include "event_groups.h"
+#endif
+
 #include "ota_config.h"
 
 /* MQTT library includes. */
@@ -88,6 +92,14 @@
 
 
 /*------------- Demo configurations -------------------------*/
+#if DEMO_HOME_ASSISTANT
+#define OTA_UPDATE_BIT     (1 << 0)  // New OTA pending
+#define OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
+
+EventGroupHandle_t xOtaEventGroup;
+
+volatile AppVersion32_t newAppFirmwareVersion;
+#endif
 
 /**
  * @brief The maximum size of the file paths used in the demo.
@@ -1091,7 +1103,7 @@ static OtaMqttStatus_t prvMQTTPublish( const char * const pacTopic,
                                        uint16_t topicLen,
                                        const char * pMsg,
                                        uint32_t msgSize,
-                                       uint8_t qos )
+                                       uint8_t qos)
 {
     OtaMqttStatus_t otaRet = OtaMqttSuccess;
     BaseType_t result;
@@ -1107,7 +1119,6 @@ static OtaMqttStatus_t prvMQTTPublish( const char * const pacTopic,
     publishInfo.qos = qos;
     publishInfo.pPayload = pMsg;
     publishInfo.payloadLength = msgSize;
-
 
     xTaskNotifyStateClear( NULL );
 
@@ -1288,6 +1299,163 @@ static inline BaseType_t xIsOtaAgentActive( void )
 
     return xResult;
 }
+#if DEMO_HOME_ASSISTANT
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
+{
+  MQTTPublishInfo_t xPublishInfo = { 0UL };
+  MQTTAgentCommandContext_t xCommandContext = { 0 };
+  MQTTStatus_t xMQTTStatus;
+  BaseType_t xNotifyStatus;
+  MQTTAgentCommandInfo_t xCommandParams = { 0UL };
+  uint32_t ulNotifiedValue = 0U;
+  MQTTAgentHandle_t xMQTTAgentHandle = NULL;
+
+  xMQTTAgentHandle = xGetMqttAgentHandle();
+
+  /* Create a unique number of the subscribe that is about to be sent.  The number
+   * is used as the command context and is sent back to this task as a notification
+   * in the callback that executed upon receipt of the subscription acknowledgment.
+   * That way this task can match an acknowledgment to a subscription. */
+  xTaskNotifyStateClear(NULL);
+
+  /* Configure the publish operation. */
+  xPublishInfo.qos = xQoS;
+  xPublishInfo.retain = xRetain;
+  xPublishInfo.pTopicName = pcTopic;
+  xPublishInfo.topicNameLength = (uint16_t) strlen(pcTopic);
+  xPublishInfo.pPayload = pucPayload;
+  xPublishInfo.payloadLength = xPayloadLength;
+
+  xCommandContext.xTaskToNotify = xTaskGetCurrentTaskHandle();
+
+  xCommandParams.blockTimeMs = otaexampleMQTT_TIMEOUT_MS;
+  xCommandParams.cmdCompleteCallback = prvCommandCallback;
+  xCommandParams.pCmdCompleteCallbackContext = &xCommandContext;
+
+  /* Loop in case the queue used to communicate with the MQTT agent is full and
+   * attempts to post to it time out.  The queue will not become full if the
+   * priority of the MQTT agent task is higher than the priority of the task
+   * calling this function. */
+  do
+  {
+    xMQTTStatus = MQTTAgent_Publish(xMQTTAgentHandle, &xPublishInfo, &xCommandParams);
+
+    if (xMQTTStatus == MQTTSuccess)
+    {
+      /* Wait for this task to get notified, passing out the value it gets  notified with. */
+      xNotifyStatus = xTaskNotifyWait(0, 0, &ulNotifiedValue, portMAX_DELAY);
+
+      if (xNotifyStatus == pdTRUE)
+      {
+        if (ulNotifiedValue)
+        {
+          xMQTTStatus = MQTTSendFailed;
+        }
+        else
+        {
+          xMQTTStatus = MQTTSuccess;
+        }
+      }
+      else
+      {
+        xMQTTStatus = MQTTSendFailed;
+      }
+    }
+  }
+  while (xMQTTStatus != MQTTSuccess);
+
+  return xMQTTStatus;
+}
+
+static MQTTStatus_t publishFirmwareVersionStatus(const AppVersion32_t appFirmwareVersion, const AppVersion32_t newAppFirmwareVersion, const char * pcThingName)
+{
+    char cPayloadBuf[128];
+    char cTopicBuf[64];
+    int msgLen = 0;
+    MQTTQoS_t xQoS = MQTTQoS0;
+    bool xRetain = pdTRUE;
+    uint16_t topicLen = 0;
+    MQTTStatus_t xStatus = MQTTBadParameter;
+
+    // Compose topic: <ThingName>/fw/state
+    msgLen = snprintf(cTopicBuf, sizeof(cTopicBuf), "%s/fw/state", pcThingName);
+    if (msgLen < 0 || msgLen >= sizeof(cTopicBuf))
+    {
+        return MQTTBadParameter;
+    }
+    topicLen = (uint16_t) msgLen;
+
+    // Compose JSON payload
+    msgLen = snprintf(cPayloadBuf, sizeof(cPayloadBuf),
+                      "{\"installed_version\": \"%u.%u.%u\", \"latest_version\": \"%u.%u.%u\"}",
+                      appFirmwareVersion.u.x.major,
+                      appFirmwareVersion.u.x.minor,
+                      appFirmwareVersion.u.x.build,
+                      newAppFirmwareVersion.u.x.major,
+                      newAppFirmwareVersion.u.x.minor,
+                      newAppFirmwareVersion.u.x.build);
+
+    if (msgLen < 0 || msgLen >= sizeof(cPayloadBuf))
+    {
+        return MQTTBadParameter;
+    }
+
+    prvPublishToTopic(xQoS, xRetain, cTopicBuf, (uint8_t*) cPayloadBuf, msgLen);
+
+    return xStatus;
+}
+
+static void prvHandleFwUpdateCommand(void *pxSubscriptionContext, MQTTPublishInfo_t *pPublishInfo)
+{
+    if (pPublishInfo == NULL || pPublishInfo->pPayload == NULL || pPublishInfo->payloadLength == 0)
+    {
+        return;
+    }
+
+    const char *payload = (const char *)pPublishInfo->pPayload;
+
+    // Ensure payload is null-terminated for comparison
+    char tempPayload[32] = {0};  // Adjust size as needed
+    size_t copyLen = (pPublishInfo->payloadLength < sizeof(tempPayload) - 1)
+                     ? pPublishInfo->payloadLength
+                     : sizeof(tempPayload) - 1;
+    memcpy(tempPayload, payload, copyLen);
+    tempPayload[copyLen] = '\0';
+
+    if (strcmp(tempPayload, "start_update") == 0)
+    {
+        xEventGroupSetBits(xOtaEventGroup, OTA_UPDATE_START);
+    }
+}
+
+BaseType_t subscribeToFwUpdateTopic(MQTTAgentHandle_t xMQTTAgentHandle, const char *pcThingName)
+{
+    BaseType_t xResult = pdPASS;
+    MQTTStatus_t xMQTTStatus;
+
+    char topicBuf[128];
+    snprintf(topicBuf, sizeof(topicBuf), "%s/fw/update", pcThingName);
+
+    if ((xResult == pdPASS) && (xMQTTAgentHandle != NULL))
+    {
+        xMQTTStatus = MqttAgent_SubscribeSync(
+            xMQTTAgentHandle,
+            topicBuf,
+            MQTTQoS0,
+            prvHandleFwUpdateCommand,
+            NULL
+        );
+
+        if (xMQTTStatus != MQTTSuccess)
+        {
+            LogError("Failed to subscribe to FW update topic: %s", topicBuf);
+            xResult = pdFAIL;
+        }
+    }
+
+    return xResult;
+}
+#endif
 
 void vOTAUpdateTask( void * pvParam )
 {
@@ -1450,6 +1618,23 @@ void vOTAUpdateTask( void * pvParam )
         }
     }
 
+
+#if defined DEMO_HOME_ASSISTANT
+    xOtaEventGroup = xEventGroupCreate();
+
+    if (xOtaEventGroup == NULL)
+    {
+        LogError("Failed to create OTA event group.");
+    }
+
+    newAppFirmwareVersion.u.x.major = appFirmwareVersion.u.x.major;
+    newAppFirmwareVersion.u.x.minor = appFirmwareVersion.u.x.minor;
+    newAppFirmwareVersion.u.x.build = appFirmwareVersion.u.x.build;
+
+    subscribeToFwUpdateTopic(xMQTTAgentHandle, pcThingName);
+
+    publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName);
+#endif
     /***************************Start OTA demo loop. ******************************/
 
     if( xResult == pdPASS )
@@ -1460,6 +1645,14 @@ void vOTAUpdateTask( void * pvParam )
 
         do
         {
+#if defined DEMO_HOME_ASSISTANT
+          if((appFirmwareVersion.u.x.major != newAppFirmwareVersion.u.x.major) ||
+             (appFirmwareVersion.u.x.minor != newAppFirmwareVersion.u.x.minor) ||
+             (appFirmwareVersion.u.x.build != newAppFirmwareVersion.u.x.build))
+          {
+            publishFirmwareVersionStatus(appFirmwareVersion, newAppFirmwareVersion, pcThingName);
+          }
+#endif
             /* OTA library packet statistics per job.*/
             OtaAgentStatistics_t otaStatistics = { 0 };
 
@@ -1474,8 +1667,17 @@ void vOTAUpdateTask( void * pvParam )
                            otaStatistics.otaPacketsProcessed,
                            otaStatistics.otaPacketsDropped ) );
             }
-
+#if defined DEMO_HOME_ASSISTANT
+            EventBits_t uxBits = xEventGroupWaitBits(
+                xOtaEventGroup,
+                OTA_UPDATE_BIT,                     // Bit to wait for
+                pdTRUE,                             // Clear the bit on exit
+                pdFALSE,                            // Wait for any bit (just one in this case)
+                pdMS_TO_TICKS(otaexampleTASK_DELAY_MS) // Timeout after delay period
+            );
+#else
             vTaskDelay( pdMS_TO_TICKS( otaexampleTASK_DELAY_MS ) );
+#endif
         } while( OTA_GetState() != OtaAgentStateStopped );
     }
 

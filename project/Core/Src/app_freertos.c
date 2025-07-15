@@ -395,7 +395,7 @@ void StartDefaultTask(void *argument)
 #endif
 
 #if DEMO_HOME_ASSISTANT
-      xTaskCreate(vHAConfigPublishTask, "HS", TASK_STACK_SIZE_HS, NULL, TASK_PRIO_HS, NULL);
+      xTaskCreate(vHAConfigPublishTask, "HA", TASK_STACK_SIZE_HS, NULL, TASK_PRIO_HS, NULL);
 #endif
 
 #if DEMO_LED

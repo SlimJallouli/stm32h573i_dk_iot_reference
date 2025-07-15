@@ -45,7 +45,8 @@ def get_retained_topics(thing_name):
         f"homeassistant/switch/{thing_name}_led/config",
         f"{thing_name}/led/reported",
         f"{thing_name}/led/desired",
-        f"{thing_name}/sensor/button/reported"
+        f"{thing_name}/sensor/button/reported",
+        f"{thing_name}/fw/state"
     ]
 
 def on_connect(client, userdata, flags, rc):

@@ -35,6 +35,7 @@ parser.add_argument("--secretkey", help="AWS secret key",default="", required=Fa
 parser.add_argument("--sessiontoken", help="AWS SESSION TOKEN",default="", required=False)
 parser.add_argument("--certarn", help="signing certificate arn", required=False)
 parser.add_argument("--board", help="target board", required=True)
+parser.add_argument("--version", help="Firmware version to include in OTA job", required=True)
 
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument("--thing-group", help="The thing group name")
@@ -166,7 +167,8 @@ def main(argv):
                         file=args.bin_file,
                         bucket=args.bucket, 
                         signer=args.signer,
-                        roleArn=roleArn)
+                        roleArn=roleArn,
+                        version=args.version)
     
     logger.info('Update Arn              : ' + ota['otaUpdateArn'])
     logger.info('Update ID               : ' + ota['otaUpdateId'])

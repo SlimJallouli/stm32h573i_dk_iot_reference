@@ -53,6 +53,7 @@
 # define MAXT_TOPIC_LENGTH 128
 static char publish_topic[MAXT_TOPIC_LENGTH];
 
+#define MQTT_PUBLISH_TIME_BETWEEN_MS         ( 300 )
 /**
  * @brief The maximum amount of time in milliseconds to wait for the commands
  * to be posted to the MQTT agent should the MQTT agent's command queue be full.
@@ -125,7 +126,7 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
  * @param[in] pucPayload The payload blob to be published.
  * @param[in] xPayloadLength Length of the payload blob to be published.
  */
-static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool retain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength);
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength);
 
 /**
  * @brief The function that implements the task demonstrated by this file.
@@ -140,8 +141,6 @@ void vHAConfigPublishTask(void *pvParameters);
  * This function uses the MQTT agent's publish flow to remove a previously retained message
  * on a topic by publishing a zero-length payload with the retain flag set.
  *
- * @param[in] xQoS The desired quality of service (typically MQTTQoS0 or MQTTQoS1).
- * @param[in] xRetain Boolean indicating whether to set the retain flag (must be true to clear).
  * @param[in] pcTopic The topic from which to clear the retained message.
  *
  * @return MQTTSuccess if the empty publish succeeded, appropriate MQTTStatus_t error otherwise.
@@ -168,7 +167,7 @@ static void prvPublishCommandCallback(MQTTAgentCommandContext_t *pxCommandContex
 
 /*-----------------------------------------------------------*/
 
-static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool retain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
+static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool xRetain, char *pcTopic, uint8_t *pucPayload, size_t xPayloadLength)
 {
   MQTTPublishInfo_t xPublishInfo = { 0UL };
   MQTTAgentCommandContext_t xCommandContext = { 0 };
@@ -185,7 +184,7 @@ static MQTTStatus_t prvPublishToTopic(MQTTQoS_t xQoS, bool retain, char *pcTopic
 
   /* Configure the publish operation. */
   xPublishInfo.qos = xQoS;
-  xPublishInfo.retain = retain;
+  xPublishInfo.retain = xRetain;
   xPublishInfo.pTopicName = pcTopic;
   xPublishInfo.topicNameLength = (uint16_t) strlen(pcTopic);
   xPublishInfo.pPayload = pucPayload;
@@ -240,6 +239,45 @@ static MQTTStatus_t prvClearRetainedTopic(char *pcTopic)
   LogInfo(("Clearing retained message on topic: %s", pcTopic));
   return prvPublishToTopic(MQTTQoS0, pdTRUE, pcTopic, NULL, 0);
 }
+
+/*-----------------------------------------------------------*/
+
+static MQTTStatus_t publishFirmwareVersionStatus(const AppVersion32_t appFirmwareVersion, const char * pcThingName)
+{
+    char cPayloadBuf[128];
+    char cTopicBuf[64];
+    int msgLen = 0;
+    MQTTQoS_t xQoS = MQTTQoS0;
+    bool xRetain = pdTRUE;
+    MQTTStatus_t xStatus = MQTTBadParameter;
+
+    // Compose topic: <ThingName>/fw/state
+    msgLen = snprintf(cTopicBuf, sizeof(cTopicBuf), "%s/fw/state", pcThingName);
+    if (msgLen < 0 || msgLen >= sizeof(cTopicBuf))
+    {
+        return MQTTBadParameter;
+    }
+    // Compose JSON payload
+    msgLen = snprintf(cPayloadBuf, sizeof(cPayloadBuf),
+                      "{\"installed_version\": \"%u.%u.%u\", \"latest_version\": \"%u.%u.%u\"}",
+                      appFirmwareVersion.u.x.major,
+                      appFirmwareVersion.u.x.minor,
+                      appFirmwareVersion.u.x.build,
+                      appFirmwareVersion.u.x.major,
+                      appFirmwareVersion.u.x.minor,
+                      appFirmwareVersion.u.x.build);
+
+    if (msgLen < 0 || msgLen >= sizeof(cPayloadBuf))
+    {
+        return MQTTBadParameter;
+    }
+
+    // Publish over MQTT using QoS 0 and retain = true
+    xStatus = prvPublishToTopic(xQoS, xRetain, cTopicBuf, (uint8_t*) cPayloadBuf, msgLen);
+
+    return xStatus;
+}
+
 /*-----------------------------------------------------------*/
 
 void vHAConfigPublishTask(void *pvParameters)
@@ -250,6 +288,7 @@ void vHAConfigPublishTask(void *pvParameters)
   bool xRetain = pdTRUE;
   char *pThingName = NULL;
   size_t uxThingNameLen = 0;
+  char * fwVersionStr = (char*) pvPortMalloc(17);
 
   vSleepUntilMQTTAgentReady();
   xMQTTAgentHandle = xGetMqttAgentHandle();
@@ -264,84 +303,127 @@ void vHAConfigPublishTask(void *pvParameters)
 
   LogInfo(("Publishing Home Assistant discovery configuration for device: %s", pThingName));
 
-#if (DEMO_LED == 1)
-  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pThingName);
 
-  if (xRetain)
+  memset(fwVersionStr, 0, 17);
+
+  snprintf(fwVersionStr, 16, "%d.%d.%d",
+           appFirmwareVersion.u.x.major,
+           appFirmwareVersion.u.x.minor,
+           appFirmwareVersion.u.x.build);
+
+#if (DEMO_OTA == 1)
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/update/%s_fw/config", pThingName);
+
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"Firmware\","
+      "\"unique_id\": \"%s_fw_update\","
+      "\"state_topic\": \"%s/fw/state\","
+      "\"value_template\": \"{{ value_json.installed_version }}\","
+      "\"latest_version_topic\": \"%s/fw/state\","
+      "\"latest_version_template\": \"{{ value_json.latest_version }}\","
+      "\"command_topic\": \"%s/fw/update\","
+      "\"payload_install\": \"start_update\","
+      "\"retain\": false,"
+      "\"device_class\": \"firmware\","
+      "\"device\": {"
+      "\"identifiers\": [\"%s\"],"
+      "\"manufacturer\": \"STMicroelectronics\","
+      "\"model\": \"%s\","
+      "\"name\": \"%s\","
+      "\"sw_version\": \"%s\""
+      "}"
+      "}", pThingName, pThingName, pThingName, pThingName, pThingName, BOARD, pThingName, fwVersionStr);
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
   {
-    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
-        "\"name\": \"LED\","
-        "\"unique_id\": \"%s_led\","
-        "\"command_topic\": \"%s/led/desired\","
-        "\"state_topic\": \"%s/led/reported\","
-        "\"value_template\": \"{{ value_json.ledStatus.reported }}\","
-        "\"payload_on\": \"ON\","
-        "\"payload_off\": \"OFF\","
-        "\"state_on\": \"ON\","
-        "\"state_off\": \"OFF\","
-        "\"retain\": true,"
-        "\"device\": {"
-        "\"identifiers\": [\"%s\"],"
-        "\"manufacturer\": \"STMicroelectronics\","
-        "\"model\": \"%s\","
-        "\"name\": \"%s\""
-        "}"
-        "}", pThingName, pThingName, pThingName, pThingName, BOARD, pThingName);
-
-    if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-    {
-      prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-    }
-    else
-    {
-      LogError(("LED payload truncated"));
-    }
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
   }
   else
   {
-    prvClearRetainedTopic(configPUBLISH_TOPIC);
+    LogError(("Firmware update payload truncated"));
   }
 
-  vTaskDelay(500);
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+#endif
+
+#if (DEMO_LED == 1)
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pThingName);
+
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"LED\","
+      "\"unique_id\": \"%s_led\","
+      "\"command_topic\": \"%s/led/desired\","
+      "\"state_topic\": \"%s/led/reported\","
+      "\"value_template\": \"{{ value_json.ledStatus.reported }}\","
+      "\"payload_on\": \"ON\","
+      "\"payload_off\": \"OFF\","
+      "\"state_on\": \"ON\","
+      "\"state_off\": \"OFF\","
+      "\"retain\": true,"
+      "\"device\": {"
+      "\"identifiers\": [\"%s\"],"
+      "\"manufacturer\": \"STMicroelectronics\","
+      "\"model\": \"%s\","
+      "\"name\": \"%s\","
+      "\"sw_version\": \"%s\""
+      "}"
+      "}", pThingName, pThingName, pThingName, pThingName, BOARD, pThingName, fwVersionStr);
+
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
+  }
+  else
+  {
+    LogError(("LED payload truncated"));
+  }
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+#else
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/switch/%s_led/config", pThingName);
+
+  prvClearRetainedTopic(configPUBLISH_TOPIC);
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 #endif
 
 #if (DEMO_BUTTON == 1)
   snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/binary_sensor/%s_button/config", pThingName);
 
-  if (xRetain)
-  {
-    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
-        "\"name\": \"Button\","
-        "\"unique_id\": \"%s_button\","
-        "\"state_topic\": \"%s/sensor/button/reported\","
-        "\"value_template\": \"{{ value_json.buttonStatus.reported }}\","
-        "\"payload_on\": \"ON\","
-        "\"payload_off\": \"OFF\","
-        "\"device_class\": \"occupancy\","
-        "\"retain\": true,"
-        "\"device\": {"
-        "\"identifiers\": [\"%s\"],"
-        "\"manufacturer\": \"STMicroelectronics\","
-        "\"model\": \"%s\","
-        "\"name\": \"%s\""
-        "}"
-        "}", pThingName, pThingName, pThingName, BOARD, pThingName);
+  xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+      "\"name\": \"Button\","
+      "\"unique_id\": \"%s_button\","
+      "\"state_topic\": \"%s/sensor/button/reported\","
+      "\"value_template\": \"{{ value_json.buttonStatus.reported }}\","
+      "\"payload_on\": \"ON\","
+      "\"payload_off\": \"OFF\","
+      "\"device_class\": \"occupancy\","
+      "\"retain\": true,"
+      "\"device\": {"
+      "\"identifiers\": [\"%s\"],"
+      "\"manufacturer\": \"STMicroelectronics\","
+      "\"model\": \"%s\","
+      "\"name\": \"%s\","
+      "\"sw_version\": \"%s\""
+      "}"
+      "}", pThingName, pThingName, pThingName, BOARD, pThingName, fwVersionStr);
 
-    if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-    {
-      prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-    }
-    else
-    {
-      LogError(("Button payload truncated"));
-    }
+  if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+  {
+    prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
   }
   else
   {
-    prvClearRetainedTopic(configPUBLISH_TOPIC);
+    LogError(("Button payload truncated"));
   }
 
-  vTaskDelay(500);
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+#else
+  snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/binary_sensor/%s_button/config", pThingName);
+
+  prvClearRetainedTopic(configPUBLISH_TOPIC);
+
+  vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
 #endif
 
 #if (DEMO_ENV_SENSOR == 1)
@@ -354,38 +436,44 @@ void vHAConfigPublishTask(void *pvParameters)
   {
     snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, env_fields[i]);
 
-    if (xRetain)
-    {
-      xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
-          "\"name\": \"%s\","
-          "\"unique_id\": \"%s_env_%d\","
-          "\"state_topic\": \"%s/sensor/env\","
-          "\"value_template\": \"{{ value_json.%s }}\","
-          "\"unit_of_measurement\": \"%s\","
-          "\"device_class\": \"%s\","
-          "\"retain\": true,"
-          "\"device\": {"
-          "\"identifiers\": [\"%s\"],"
-          "\"manufacturer\": \"STMicroelectronics\","
-          "\"model\": \"%s\","
-          "\"name\": \"%s\""
-          "}"
-          "}", env_names[i], pThingName, i, pThingName, env_fields[i], env_units[i], env_classes[i], pThingName, BOARD, pThingName);
+    xPayloadLength = snprintf(cPayloadBuf, configPAYLOAD_BUFFER_LENGTH, "{"
+        "\"name\": \"%s\","
+        "\"unique_id\": \"%s_env_%d\","
+        "\"state_topic\": \"%s/sensor/env\","
+        "\"value_template\": \"{{ value_json.%s }}\","
+        "\"unit_of_measurement\": \"%s\","
+        "\"device_class\": \"%s\","
+        "\"retain\": true,"
+        "\"device\": {"
+        "\"identifiers\": [\"%s\"],"
+        "\"manufacturer\": \"STMicroelectronics\","
+        "\"model\": \"%s\","
+        "\"name\": \"%s\","
+        "\"sw_version\": \"%s\""
+        "}"
+        "}", env_names[i], pThingName, i, pThingName, env_fields[i], env_units[i], env_classes[i], pThingName, BOARD, pThingName, fwVersionStr);
 
-      if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
-      {
-        prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
-      }
-      else
-      {
-        LogError(("Env sensor %d payload truncated", i));
-      }
+    if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
+    {
+      prvPublishToTopic(xQoS, xRetain, configPUBLISH_TOPIC, (uint8_t*) cPayloadBuf, xPayloadLength);
     }
     else
     {
-      prvClearRetainedTopic(configPUBLISH_TOPIC);
+      LogError(("Env sensor %d payload truncated", i));
     }
-    vTaskDelay(500);
+
+    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+  }
+#else
+  const char *env_fields[] = { "temp_0_c", "temp_1_c", "rh_pct", "baro_mbar" };
+
+  for (int i = 0; i < 4; i++)
+  {
+    snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s/config", pThingName, env_fields[i]);
+
+    prvClearRetainedTopic(configPUBLISH_TOPIC);
+
+    vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
   }
 #endif
 
@@ -413,10 +501,11 @@ void vHAConfigPublishTask(void *pvParameters)
             "\"identifiers\": [\"%s\"],"
             "\"manufacturer\": \"STMicroelectronics\","
             "\"model\": \"%s\","
-            "\"name\": \"%s\""
+            "\"name\": \"%s\","
+            "\"sw_version\": \"%s\""
             "}"
             "}", motion_labels[m], axes[a], pThingName, motion_roots[m], axes[a], pThingName, motion_roots[m], axes[a], (
-            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")), pThingName, BOARD, pThingName);
+            m == 0 ? "mG" : (m == 1 ? "mDPS" : "mG")), pThingName, BOARD, pThingName, fwVersionStr);
 
         if (xPayloadLength < configPAYLOAD_BUFFER_LENGTH)
         {
@@ -432,7 +521,22 @@ void vHAConfigPublishTask(void *pvParameters)
         prvClearRetainedTopic(configPUBLISH_TOPIC);
       }
 
-      vTaskDelay(500);
+      vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
+    }
+  }
+#else
+  const char *motion_roots[] = { "acceleration_mG", "gyro_mDPS", "magnetometer_mGauss" };
+  const char *axes[] = { "x", "y", "z" };
+
+  for (int m = 0; m < 3; m++)
+  {
+    for (int a = 0; a < 3; a++)
+    {
+      snprintf(configPUBLISH_TOPIC, MAXT_TOPIC_LENGTH, "homeassistant/sensor/%s_%s_%s/config", pThingName, motion_roots[m], axes[a]);
+
+      prvClearRetainedTopic(configPUBLISH_TOPIC);
+
+      vTaskDelay(MQTT_PUBLISH_TIME_BETWEEN_MS);
     }
   }
 #endif

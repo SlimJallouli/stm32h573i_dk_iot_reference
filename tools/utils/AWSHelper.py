@@ -507,7 +507,7 @@ class AwsHelper:
         except  ClientError as error:
             raise ValueError(error)
             
-    def push_ota_update(self, updateID:str, targetArn:str, file:str, bucket:str, signer:str, roleArn:str):
+    def push_ota_update(self, updateID:str, targetArn:str, file:str, bucket:str, signer:str, roleArn:str, version:str):
         """
         - Attempts to create an OTA job
 
@@ -527,7 +527,7 @@ class AwsHelper:
                 targets = [targetArn],
                 files = [
                     {
-                    "fileName": file,
+                    "fileName": f"{version}/{file}",
                     'fileType': 0,
                     'fileVersion': '1',
                     "fileLocation": {
