@@ -22,13 +22,17 @@ export BOARD='STM32H573I-DK'
 #export BOARD='NUCLEO-H536ZI'
 #export BOARD='NUCLEO-N657x0-Q'
 
-export FILE_VERSION="0.9.2"
+# Check for version argument
+if [ -z "$1" ]; then
+    echo "Usage: $0 <FILE_VERSION>"
+    exit 1
+fi
+
+export FILE_VERSION="$1"
 export BIN_LOCATION="../../project/MXCHIP/"
-# export BIN_LOCATION="./${FILE_VERSION}/"
 export BIN_FILE="stm32h573i_dk_iot_reference.bin"
 export THING_NAME='stm32h573-002C005B3332511738363236'
 export THING_GROUP_NAME="STM32H573I-DK"
-
 
 export AWS_CLI_PROFILE='default'
 export ROLE='ld-st67-OTA_ROLE'

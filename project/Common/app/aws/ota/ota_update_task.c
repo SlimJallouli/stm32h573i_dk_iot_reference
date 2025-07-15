@@ -93,7 +93,7 @@
 
 /*------------- Demo configurations -------------------------*/
 #if DEMO_HOME_ASSISTANT
-#define OTA_UPDATE_BIT     (1 << 0)  // New OTA pending
+#define OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
 #define OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
 
 EventGroupHandle_t xOtaEventGroup;
@@ -1668,9 +1668,9 @@ void vOTAUpdateTask( void * pvParam )
                            otaStatistics.otaPacketsDropped ) );
             }
 #if defined DEMO_HOME_ASSISTANT
-            EventBits_t uxBits = xEventGroupWaitBits(
+            xEventGroupWaitBits(
                 xOtaEventGroup,
-                OTA_UPDATE_BIT,                     // Bit to wait for
+                OTA_UPDATE_AVAILABLE,               // Bit to wait for
                 pdTRUE,                             // Clear the bit on exit
                 pdFALSE,                            // Wait for any bit (just one in this case)
                 pdMS_TO_TICKS(otaexampleTASK_DELAY_MS) // Timeout after delay period

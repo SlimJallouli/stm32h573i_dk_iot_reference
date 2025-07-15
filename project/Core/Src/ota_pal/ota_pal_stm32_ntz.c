@@ -57,7 +57,7 @@
 #include "ota_appversion32.h"
 
 #if DEMO_HOME_ASSISTANT
-#define OTA_UPDATE_BIT     (1 << 0)  // New OTA pending
+#define OTA_UPDATE_AVAILABLE     (1 << 0)  // New OTA pending
 #define OTA_UPDATE_START   (2 << 0)  // Signal to start OTA
 
 extern EventGroupHandle_t xOtaEventGroup;
@@ -1017,7 +1017,7 @@ void waitForOtaStart(void)
         portMAX_DELAY       // Block forever
     );
 
-    if ((uxBits & OTA_UPDATE_BIT) != 0) {
+    if ((uxBits & OTA_UPDATE_AVAILABLE) != 0) {
         LogInfo("OTA start bit received — beginning OTA process...");
         // Proceed with your OTA workflow here
     }
@@ -1082,7 +1082,7 @@ HAL_ICACHE_Enable();
             newAppFirmwareVersion.u.x.minor,
             newAppFirmwareVersion.u.x.build ) );
 
-        xEventGroupSetBits(xOtaEventGroup, OTA_UPDATE_BIT);
+        xEventGroupSetBits(xOtaEventGroup, OTA_UPDATE_AVAILABLE);
 
         waitForOtaStart();
         vTaskDelay(10);
